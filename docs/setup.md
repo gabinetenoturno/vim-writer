@@ -50,15 +50,15 @@ compatível sem mudanças.
 
 ### Configurações ativas no Neovide
 
-| Opção               | Valor        | Efeito                              |
-|---------------------|--------------|-------------------------------------|
-| guifont             | FreeMono:h14 | mesma fonte do perfil Konsole       |
-| scale_factor normal | 1.0          | tamanho padrão                      |
-| scale_factor foco   | 1.25         | +25% ao entrar no modo Goyo         |
-| cursor_trail_size   | 0            | sem rastro no cursor                |
-| scroll_animation    | 0.2s         | scroll suave                        |
-| padding             | 8px          | respiro nas bordas da janela        |
-| F11                 | fullscreen   | alterna tela cheia                  |
+| Opção             | Valor        | Efeito                                      |
+|-------------------|--------------|---------------------------------------------|
+| guifont normal    | FreeMono:h14 | fonte base (ajustável com `:fz <n>`)        |
+| guifont foco      | FreeMono:h18 | fonte no modo Goyo (ajustável com `:fz <n>`) |
+| cursor_trail_size | 0            | sem rastro no cursor                        |
+| scroll_animation  | 0.2s         | scroll suave                                |
+| padding lateral   | 80px         | margens laterais                            |
+| padding top/bot   | 8px          | respiro nas bordas                          |
+| F11               | fullscreen   | alterna tela cheia                          |
 
 ---
 
@@ -146,20 +146,21 @@ Nenhuma mudança de fundo ocorre — o indicador é exclusivamente o cursor.
 
 ## Atalhos principais
 
-| Tecla       | Ação                                      |
-|-------------|-------------------------------------------|
-| `<Space>w`  | liga/desliga modo foco                    |
-| `<Space>s`  | liga/desliga correção ortográfica         |
-| `<Space>x`  | exporta arquivo atual para PDF            |
-| `<Space>n`  | abre o wiki de notas                      |
-| `<Space>e`  | abre/fecha NERDTree                       |
-| `<Space>f`  | busca arquivo (Telescope)                 |
-| `<Space>/`  | busca texto no manuscrito (Telescope)     |
-| `<Space>b`  | lista buffers abertos                     |
-| `j` / `k`   | movem por linha visual (não linha física) |
-| `]s` / `[s` | próximo/anterior erro ortográfico         |
-| `zg`        | adiciona palavra ao dicionário            |
-| `F11`       | fullscreen (Neovide apenas)               |
+| Tecla / Comando | Ação                                                        |
+|-----------------|-------------------------------------------------------------|
+| `<Space>w`      | liga/desliga modo foco                                      |
+| `<Space>s`      | liga/desliga correção ortográfica                           |
+| `<Space>x`      | exporta arquivo atual para PDF                              |
+| `<Space>n`      | abre o wiki de notas                                        |
+| `<Space>e`      | abre/fecha NERDTree                                         |
+| `<Space>f`      | busca arquivo (Telescope)                                   |
+| `<Space>/`      | busca texto no manuscrito (Telescope)                       |
+| `<Space>b`      | lista buffers abertos                                       |
+| `j` / `k`       | movem por linha visual (não linha física)                   |
+| `]s` / `[s`     | próximo/anterior erro ortográfico                           |
+| `zg`            | adiciona palavra ao dicionário                              |
+| `F11`           | fullscreen (Neovide apenas)                                 |
+| `:fz <n>`       | define tamanho da fonte; persiste por modo (normal ou Goyo) |
 
 ---
 

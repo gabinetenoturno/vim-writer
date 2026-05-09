@@ -46,6 +46,9 @@ Branch única: `main`. Sempre commitar e fazer push direto na main — não há 
 2. Pedir ao usuário para testar
 3. Após confirmação: atualizar a documentação relevante (`docs/setup.md` ou `docs/workflow.md`), commitar e fazer push
 
+**Atalho UCP**: quando o usuário enviar "UCP", executar os três passos em sequência:
+Update doc → Commit → Push (direto na main, sem confirmação adicional)
+
 ## Sincronizar após mudanças
 
 ```bash

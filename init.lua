@@ -37,7 +37,6 @@ vim.opt.updatetime  = 300
 -- Neovide
 if vim.g.neovide then
   vim.opt.guifont = "FreeMono:h14"       -- fonte base (tamanho normal)
-  vim.g.neovide_scale_factor        = 1.0
   vim.g.neovide_cursor_animation_length = 0.05
   vim.g.neovide_cursor_trail_size   = 0
   vim.g.neovide_scroll_animation_length = 0.2
@@ -237,10 +236,18 @@ local function typewriter_off()
   wc_hide()
 end
 
--- Cores de fundo e forward declarations
-local bg_normal = "#232136"
-local fg_text   = "#e0def4"
+-- Cores de fundo, tamanhos de fonte e forward declarations
+local bg_normal   = "#232136"
+local fg_text     = "#e0def4"
+local font_normal = 14    -- tamanho da fonte no modo normal
+local font_goyo   = 18    -- tamanho da fonte no modo foco (≈ h14 × 1.25)
 local apply_insert_colors, apply_normal_colors
+
+local function set_font(size)
+  if vim.g.neovide then
+    vim.opt.guifont = "FreeMono:h" .. size
+  end
+end
 
 -- Integração Goyo + Limelight (canônica)
 vim.api.nvim_create_autocmd("User", {
@@ -250,9 +257,7 @@ vim.api.nvim_create_autocmd("User", {
     typewriter_on()
     vim.opt.laststatus = 0                                 -- esconde status lines nos painéis do Goyo
     vim.api.nvim_set_hl(0, "GoyoPad", { bg = bg_normal })
-    if vim.g.neovide then
-      vim.g.neovide_scale_factor = 1.25
-    end
+    set_font(font_goyo)
   end,
 })
 vim.api.nvim_create_autocmd("User", {
@@ -261,9 +266,7 @@ vim.api.nvim_create_autocmd("User", {
     vim.cmd("Limelight!")
     vim.cmd("colorscheme rose-pine-moon")
     typewriter_off()
-    if vim.g.neovide then
-      vim.g.neovide_scale_factor = 1.0
-    end
+    set_font(font_normal)
     vim.opt.laststatus = 2
     apply_normal_colors()  -- restaura highlights após reset do colorscheme
   end,
@@ -313,6 +316,23 @@ end, "Toggle correção ortográfica")
 map("n", "<leader>x",  export_pdf,                   "Exportar PDF")
 map("n", "<leader>n",  "<cmd>VimwikiIndex<cr>",       "Notas (wiki)")
 map("n", "<leader>e",  "<cmd>NERDTreeToggle<cr>",      "Explorador de arquivos")
+
+-- Tamanho de fonte interativo: :Fz 18
+-- Dentro do Goyo ajusta font_goyo; fora ajusta font_normal
+vim.api.nvim_create_user_command("Fz", function(opts)
+  local size = tonumber(opts.args)
+  if not size or size < 8 or size > 72 then
+    vim.notify("Fz: tamanho inválido (8–72)", vim.log.levels.WARN)
+    return
+  end
+  if writing_mode then
+    font_goyo = size
+  else
+    font_normal = size
+  end
+  set_font(size)
+end, { nargs = 1, desc = "Definir tamanho da fonte" })
+vim.cmd("cabbrev fz Fz")
 
 -- j/k se movem por linha visual (essencial em prosa com wrap)
 map("n", "j",  "gj",  "Linha visual abaixo")
