@@ -249,6 +249,166 @@ local function set_font(size)
   end
 end
 
+-- Sessão de foco: estado e helpers (antes dos autocmds Goyo para poder referenciá-los)
+local ns_state = { timer = nil, buf = nil, win = nil, remaining = 0, words_start = 0, mins = 0, file = "" }
+
+local function ns_fmt(s)
+  return string.format("%02d:%02d", math.floor(s / 60), s % 60)
+end
+
+local function ns_win_close()
+  if ns_state.win and vim.api.nvim_win_is_valid(ns_state.win) then
+    vim.api.nvim_win_close(ns_state.win, true)
+  end
+  ns_state.win = nil
+  ns_state.buf = nil
+end
+
+local function ns_win_open()
+  vim.api.nvim_set_hl(0, "NsFloat", { fg = "#6e6a86", bg = "NONE" })
+  ns_state.buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[ns_state.buf].bufhidden = "wipe"
+  ns_state.win = vim.api.nvim_open_win(ns_state.buf, false, {
+    relative  = "editor",
+    width     = 5,
+    height    = 1,
+    row       = vim.o.lines - 3,
+    col       = 4,
+    style     = "minimal",
+    focusable = false,
+    zindex    = 50,
+  })
+  vim.wo[ns_state.win].winhl = "Normal:NsFloat"
+  vim.api.nvim_buf_set_lines(ns_state.buf, 0, -1, false, { ns_fmt(ns_state.remaining) })
+end
+
+local function ns_tick()
+  if not (ns_state.buf and vim.api.nvim_buf_is_valid(ns_state.buf)) then return end
+  vim.api.nvim_buf_set_lines(ns_state.buf, 0, -1, false, { ns_fmt(ns_state.remaining) })
+end
+
+local function ns_save_csv(written, ppm)
+  local path = vim.fn.expand("~/WriteDir/sessoes.csv")
+  local doc  = ns_state.file:gsub('"', '""')
+  local row  = string.format('%s,%s,%d,%d,%d,"%s"',
+    os.date("%Y-%m-%d"), os.date("%H:%M"), ns_state.mins, written, ppm, doc)
+  local lines = {}
+  local rf = io.open(path, "r")
+  if rf then
+    for line in rf:lines() do table.insert(lines, line) end
+    rf:close()
+    table.insert(lines, 2, row)   -- após o cabeçalho
+  else
+    lines = { "data,hora,minutos,palavras,ppm,documento", row }
+  end
+  local wf = io.open(path, "w")
+  if not wf then
+    vim.api.nvim_echo({ { "  erro: não foi possível salvar em " .. path, "ErrorMsg" } }, true, {})
+    return
+  end
+  wf:write(table.concat(lines, "\n") .. "\n")
+  wf:close()
+  vim.api.nvim_echo({ { "  salvo em ~/WriteDir/sessoes.csv", "Normal" } }, true, {})
+end
+
+local function ns_today_total()
+  local path  = vim.fn.expand("~/WriteDir/sessoes.csv")
+  local f     = io.open(path, "r")
+  if not f then return 0 end
+  local today = os.date("%Y-%m-%d")
+  local total = 0
+  local skip  = true
+  for line in f:lines() do
+    if skip then skip = false
+    else
+      -- formato: data,hora,minutos,palavras,ppm,documento
+      local date, palavras = line:match('^([^,]+),[^,]+,[^,]+,([^,]+)')
+      if date == today then total = total + (tonumber(palavras) or 0) end
+    end
+  end
+  f:close()
+  return total
+end
+
+local function ns_show_stats(written, ppm)
+  local hoje_total = ns_today_total() + written
+  local hoje_str   = "  hoje: " .. wc_format(hoje_total) .. " palavras"
+  local lines = {
+    "",
+    hoje_str,
+    "",
+    "  fim do foco",
+    "",
+    string.format("  tempo     %d min", ns_state.mins),
+    string.format("  palavras  %d",     written),
+    string.format("  média     %d ppm", ppm),
+    "",
+    "  salvar? [y] sim   [n] não",
+    "",
+  }
+  local w    = 32
+  local sbuf = vim.api.nvim_create_buf(false, true)
+  vim.bo[sbuf].bufhidden = "wipe"
+  vim.api.nvim_buf_set_lines(sbuf, 0, -1, false, lines)
+  vim.bo[sbuf].modifiable = false
+  vim.api.nvim_set_hl(0, "NsStats",     { fg = "#e0def4", bg = "#2a273f" })
+  vim.api.nvim_set_hl(0, "NsStatsBold", { fg = "#e0def4", bg = "#2a273f", bold = true })
+  vim.api.nvim_set_hl(0, "NsBorder",    { fg = "#393552", bg = "#2a273f" })
+  vim.api.nvim_buf_add_highlight(sbuf, -1, "NsStatsBold", 1, 0, -1)  -- linha "hoje" em negrito
+  local swin = vim.api.nvim_open_win(sbuf, true, {
+    relative  = "editor",
+    width     = w,
+    height    = #lines,
+    row       = math.floor((vim.o.lines   - #lines) / 2),
+    col       = math.floor((vim.o.columns - w)      / 2),
+    style     = "minimal",
+    border    = "single",
+    zindex    = 60,
+    focusable = true,
+  })
+  vim.wo[swin].winhl = "Normal:NsStats,FloatBorder:NsBorder"
+
+  local function close(save)
+    if vim.api.nvim_win_is_valid(swin) then vim.api.nvim_win_close(swin, true) end
+    if save then
+      ns_save_csv(written, ppm)
+    end
+  end
+  local o = { buffer = sbuf, nowait = true, silent = true }
+  vim.keymap.set("n", "y",     function() close(true)  end, o)
+  vim.keymap.set("n", "Y",     function() close(true)  end, o)
+  vim.keymap.set("n", "<CR>",  function() close(true)  end, o)
+  vim.keymap.set("n", "n",     function() close(false) end, o)
+  vim.keymap.set("n", "N",     function() close(false) end, o)
+  vim.keymap.set("n", "<Esc>", function() close(false) end, o)
+  vim.keymap.set("n", "q",     function() close(false) end, o)
+end
+
+local function ns_finish()
+  ns_state.timer:stop()
+  ns_state.timer:close()
+  ns_state.timer     = nil
+  ns_state.remaining = 0
+  ns_win_close()
+  -- Palavras capturadas aqui, antes do InsertLeave, para não contar extras
+  local written = math.max(0, vim.fn.wordcount().words - ns_state.words_start)
+  local ppm     = ns_state.mins > 0 and math.floor(written / ns_state.mins) or 0
+  vim.fn.jobstart({
+    "notify-send",
+    "-u", "critical",
+    "-i", "appointment-soon",
+    "-t", "8000",
+    string.format("⏳ %d palavras · %d ppm", written, ppm),
+    string.format("Sessão de %d min encerrada.", ns_state.mins),
+  })
+  local function show() ns_show_stats(written, ppm) end
+  if vim.fn.mode() == "i" then
+    vim.api.nvim_create_autocmd("InsertLeave", { once = true, callback = show })
+  else
+    show()
+  end
+end
+
 -- Integração Goyo + Limelight (canônica)
 vim.api.nvim_create_autocmd("User", {
   pattern = "GoyoEnter",
@@ -258,6 +418,7 @@ vim.api.nvim_create_autocmd("User", {
     vim.opt.laststatus = 0                                 -- esconde status lines nos painéis do Goyo
     vim.api.nvim_set_hl(0, "GoyoPad", { bg = bg_normal })
     set_font(font_goyo)
+    if ns_state.timer then vim.schedule(function() ns_win_close(); ns_win_open() end) end
   end,
 })
 vim.api.nvim_create_autocmd("User", {
@@ -269,6 +430,7 @@ vim.api.nvim_create_autocmd("User", {
     set_font(font_normal)
     vim.opt.laststatus = 2
     apply_normal_colors()  -- restaura highlights após reset do colorscheme
+    if ns_state.timer then vim.schedule(function() ns_win_close(); ns_win_open() end) end
   end,
 })
 
@@ -348,6 +510,53 @@ local function export_pdf()
     vim.notify("Erro pandoc:\n" .. result, vim.log.levels.ERROR)
   end
 end
+
+-- Sessão de foco: comando
+vim.api.nvim_create_user_command("Sn", function(opts)
+  if ns_state.timer then
+    ns_state.timer:stop()
+    ns_state.timer:close()
+    ns_state.timer     = nil
+    ns_state.remaining = 0
+    ns_win_close()
+    vim.api.nvim_echo({ { "  Sessão cancelada.", "Normal" } }, true, {})
+    return
+  end
+
+  local mins = tonumber(opts.args) or 15
+  if mins < 1 or mins > 180 then
+    vim.notify("Ns: use entre 1 e 180 minutos", vim.log.levels.WARN)
+    return
+  end
+
+  ns_state.mins        = mins
+  ns_state.words_start = vim.fn.wordcount().words
+  ns_state.file        = vim.fn.expand("%:p")
+  ns_state.remaining   = mins * 60
+  ns_win_open()
+
+  ns_state.timer = vim.uv.new_timer()
+  ns_state.timer:start(1000, 1000, vim.schedule_wrap(function()
+    ns_state.remaining = ns_state.remaining - 1
+    if ns_state.remaining <= 0 then
+      ns_finish()
+      return
+    end
+    ns_tick()
+  end))
+
+  vim.notify(string.format("Sessão: %d min", mins), vim.log.levels.INFO)
+end, { nargs = "?", desc = "Sessão de foco" })
+vim.cmd("cabbrev sn Sn")
+
+vim.api.nvim_create_user_command("Sd", function()
+  local total = ns_today_total()
+  vim.api.nvim_echo({
+    { "  hoje: ", "Normal" },
+    { wc_format(total) .. " palavras", "NsStatsBold" },
+  }, true, {})
+end, { desc = "Total de palavras do dia" })
+vim.cmd("cabbrev sd Sd")
 
 -- Keymaps principais
 local map = function(m, k, v, d) vim.keymap.set(m, k, v, { desc = d, silent = true }) end

@@ -100,6 +100,34 @@ Cores por tipo de marcação:
 
 ---
 
+## Sessão de foco
+
+Inicia um countdown no canto inferior esquerdo. Ao fim do tempo, uma notificação do KDE exibe as estatísticas e o Neovim abre um popup para confirmar o registro.
+
+```
+:Sn 25   → inicia sessão de 25 minutos
+:Sn      → padrão de 15 minutos
+:Sn      → enquanto ativo: cancela a sessão
+:Sd      → mostra o total de palavras salvas hoje
+```
+
+Ao fim da sessão, o popup exibe:
+
+- **Total de palavras do dia** (sessões salvas + sessão atual) em negrito
+- Tempo, palavras escritas e média por minuto da sessão
+- Prompt `[y] sim / [n] não` para salvar no histórico
+
+As estatísticas são salvas em `~/WriteDir/sessoes.csv` (entrada mais recente no topo):
+
+```
+data,hora,minutos,palavras,ppm,documento
+2026-05-09,14:32,25,612,24,"/home/pin/WriteDir/romance/cap01.md"
+```
+
+Se estiver digitando quando o tempo esgotar, o popup aparece ao sair do Insert — as palavras extras não são contabilizadas.
+
+---
+
 ## Navegar para outro arquivo
 
 ```
