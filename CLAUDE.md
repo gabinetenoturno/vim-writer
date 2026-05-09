@@ -40,6 +40,12 @@ O arquivo é um único `init.lua` (sem módulos separados) para facilitar a cóp
 
 Branch única: `main`. Sempre commitar e fazer push direto na main — não há PRs, branches de feature ou code review neste repo.
 
+## Fluxo de alterações
+
+1. Aplicar a mudança no `init.lua` (ou outro arquivo) e sincronizar para `~/.config/nvim/init.lua`
+2. Pedir ao usuário para testar
+3. Após confirmação: atualizar a documentação relevante (`docs/setup.md` ou `docs/workflow.md`), commitar e fazer push
+
 ## Sincronizar após mudanças
 
 ```bash
