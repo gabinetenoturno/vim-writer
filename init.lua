@@ -289,6 +289,53 @@ local function toggle_writing()
   end
 end
 
+-- Modo leitura: highlights de revisão de prosa
+local reading_mode    = false
+local reading_matches = {}
+
+local reading_hls = {
+  LeituraDialogo     = { fg = "#9ccfd8" },
+  LeituraDialogCurto = { fg = "#9ccfd8", italic = true },
+  LeituraItalico     = { fg = "#c4a7e7", italic = true },
+  LeituraComentario  = { fg = "#6e6a86" },
+  LeituraDiscDireto  = { fg = "#f6c177" },
+}
+
+local reading_patterns = {
+  { hl = "LeituraDialogo",     pat = [[\v^—.*]],               pri = 10 },
+  { hl = "LeituraDialogCurto", pat = [[\v—[^—]+—]],           pri = 11 },
+  { hl = "LeituraItalico",     pat = [[\v\*[^*]+\*]],         pri = 10 },
+  { hl = "LeituraComentario",  pat = [=[\v\[[^\]]+\]]=],       pri = 10 },
+  { hl = "LeituraDiscDireto",  pat = [[\v("[^"]+"|"[^"]+")]], pri = 10 },
+}
+
+local function reading_apply_hls()
+  for name, opts in pairs(reading_hls) do
+    vim.api.nvim_set_hl(0, name, opts)
+  end
+end
+
+local function reading_on()
+  reading_apply_hls()
+  for _, item in ipairs(reading_patterns) do
+    table.insert(reading_matches, vim.fn.matchadd(item.hl, item.pat, item.pri))
+  end
+  vim.notify("Modo leitura: ON", vim.log.levels.INFO)
+end
+
+local function reading_off()
+  for _, id in ipairs(reading_matches) do
+    pcall(vim.fn.matchdelete, id)
+  end
+  reading_matches = {}
+  vim.notify("Modo leitura: OFF", vim.log.levels.INFO)
+end
+
+local function toggle_reading()
+  reading_mode = not reading_mode
+  if reading_mode then reading_on() else reading_off() end
+end
+
 -- Exportar arquivo atual para PDF via pandoc
 local function export_pdf()
   local src  = vim.fn.expand("%:p")
@@ -306,6 +353,7 @@ end
 local map = function(m, k, v, d) vim.keymap.set(m, k, v, { desc = d, silent = true }) end
 
 map("n", "<leader>w",  toggle_writing,               "Toggle modo escrita")
+map("n", "<leader>r",  toggle_reading,               "Toggle modo leitura")
 map("n", "<leader>s",  function()
   if writing_mode then
     vim.notify("Spell desativado no modo foco", vim.log.levels.WARN)
@@ -393,6 +441,7 @@ apply_normal_colors = function()
   vim.api.nvim_set_hl(0, "SignColumn",   { bg = bg_normal })
   vim.api.nvim_set_hl(0, "GoyoPad",     { bg = bg_normal })
   vim.cmd("redraw!")
+  if reading_mode then reading_apply_hls() end
 end
 
 vim.api.nvim_create_autocmd("InsertEnter", { callback = apply_insert_colors })

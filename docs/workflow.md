@@ -80,6 +80,26 @@ Sempre em modo Normal (Esc antes):
 
 ---
 
+## Modo leitura
+
+Ativa highlights visuais para revisão de prosa: diálogos (—), itálicos (*), comentários de revisão ([]), discurso direto com aspas.
+
+```
+<Space>r   → liga/desliga modo leitura
+```
+
+Cores por tipo de marcação:
+
+| Padrão | Exemplo | Cor |
+|--------|---------|-----|
+| Linha de diálogo | `— Ela disse...` | azul |
+| Diálogo curto inline | `—assim—` | azul itálico |
+| Itálico | `*palavra*` | roxo itálico |
+| Comentário de revisão | `[verificar]` | cinza |
+| Discurso direto | `"assim"` ou `"assim"` | âmbar |
+
+---
+
 ## Navegar para outro arquivo
 
 ```
@@ -106,6 +126,7 @@ Dentro do netrw: j/k para mover, Enter para abrir, - para subir um nível.
 ## Outros atalhos úteis
 
 ```
+<Space>r   → liga/desliga modo leitura (highlights de revisão)
 <Space>s   → liga/desliga correção ortográfica
 <Space>x   → exporta arquivo atual para PDF (requer xelatex)
 <Space>n   → abre o wiki de notas
