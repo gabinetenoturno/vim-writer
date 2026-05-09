@@ -249,6 +249,25 @@ local function set_font(size)
   end
 end
 
+local font_config = vim.fn.stdpath("data") .. "/vim-writer-fonts.lua"
+
+local function save_fonts()
+  local f = io.open(font_config, "w")
+  if f then
+    f:write(string.format("return { normal = %d, goyo = %d }\n", font_normal, font_goyo))
+    f:close()
+  end
+end
+
+do
+  local ok, cfg = pcall(dofile, font_config)
+  if ok and type(cfg) == "table" then
+    font_normal = cfg.normal or font_normal
+    font_goyo   = cfg.goyo   or font_goyo
+    set_font(font_normal)
+  end
+end
+
 -- Sessão de foco: estado e helpers (antes dos autocmds Goyo para poder referenciá-los)
 local ns_state = { timer = nil, buf = nil, win = nil, remaining = 0, words_start = 0, mins = 0, file = "" }
 
@@ -588,6 +607,7 @@ vim.api.nvim_create_user_command("Fz", function(opts)
     font_normal = size
   end
   set_font(size)
+  save_fonts()
 end, { nargs = 1, desc = "Definir tamanho da fonte" })
 vim.cmd("cabbrev fz Fz")
 
