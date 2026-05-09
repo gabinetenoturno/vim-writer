@@ -17,7 +17,7 @@ Todos os projetos ficam em `~/WriteDir/`. Cada projeto é uma pasta:
 O atalho "Escrita" abre o Neovide com o dashboard de boas-vindas. Na tela inicial:
 
 - `1` a `5` — abre um dos arquivos recentes listados
-- `<Space>e` — abre o NERDTree para navegar pelos projetos
+- `<Space>e` — abre o NERDTree para navegar pelos projetos (fecha o dashboard automaticamente)
 - `<Space>f` — busca fuzzy por nome de arquivo
 
 ## Abrir no terminal

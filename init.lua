@@ -747,6 +747,18 @@ vim.api.nvim_create_autocmd("VimEnter", {
 })
 
 vim.api.nvim_create_autocmd("FileType", {
+  pattern = "nerdtree",
+  callback = function()
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_get_name(buf):match("vim%-writer$") then
+        vim.api.nvim_buf_delete(buf, { force = true })
+        break
+      end
+    end
+  end,
+})
+
+vim.api.nvim_create_autocmd("FileType", {
   pattern = { "markdown", "text" },
   callback = function()
     vim.opt_local.spell     = true
