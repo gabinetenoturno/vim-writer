@@ -125,13 +125,11 @@ Ativado com `<Space>w`. Combina:
 
 ## Indicador de modo Insert
 
-Ao entrar em Insert mode, o fundo de toda a tela muda para #090e13
-(quase preto). Ao sair (Esc), volta ao fundo normal do tema (#232136).
-Funciona via highlight groups Normal, NormalNC, StatusLine, TabLineFill.
-
-Adicionalmente, o cursor muda de forma e cor:
+O cursor muda de forma e cor ao entrar em Insert mode:
 - Normal: bloco cinza (#908caa)
-- Insert: barra fina rosa (#eb6f92)
+- Insert: barra fina cinza-claro (#c0bfca)
+
+Nenhuma mudança de fundo ocorre — o indicador é exclusivamente o cursor.
 
 ---
 

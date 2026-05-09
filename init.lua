@@ -23,7 +23,7 @@ vim.opt.number      = false
 vim.opt.relativenumber = false
 vim.opt.cursorline  = false
 vim.opt.signcolumn  = "no"
-vim.opt.statuscolumn = "  "           -- margem esquerda mínima (2 espaços)
+vim.opt.statuscolumn = "%#Normal#    " -- margem esquerda, fundo idêntico ao Normal
 vim.opt.mouse       = "a"
 vim.opt.clipboard   = "unnamedplus"
 vim.opt.undofile    = true
@@ -43,8 +43,8 @@ if vim.g.neovide then
   vim.g.neovide_scroll_animation_length = 0.2
   vim.g.neovide_padding_top         = 8
   vim.g.neovide_padding_bottom      = 8
-  vim.g.neovide_padding_left        = 48
-  vim.g.neovide_padding_right       = 48
+  vim.g.neovide_padding_left        = 80
+  vim.g.neovide_padding_right       = 80
 
   vim.keymap.set({ "n", "i", "v" }, "<F11>", function()
     vim.g.neovide_fullscreen = not vim.g.neovide_fullscreen
@@ -237,12 +237,19 @@ local function typewriter_off()
   wc_hide()
 end
 
+-- Cores de fundo e forward declarations
+local bg_normal = "#232136"
+local fg_text   = "#e0def4"
+local apply_insert_colors, apply_normal_colors
+
 -- Integração Goyo + Limelight (canônica)
 vim.api.nvim_create_autocmd("User", {
   pattern = "GoyoEnter",
   callback = function()
     vim.cmd("Limelight")
     typewriter_on()
+    vim.opt.laststatus = 0                                 -- esconde status lines nos painéis do Goyo
+    vim.api.nvim_set_hl(0, "GoyoPad", { bg = bg_normal })
     if vim.g.neovide then
       vim.g.neovide_scale_factor = 1.25
     end
@@ -257,6 +264,8 @@ vim.api.nvim_create_autocmd("User", {
     if vim.g.neovide then
       vim.g.neovide_scale_factor = 1.0
     end
+    vim.opt.laststatus = 2
+    apply_normal_colors()  -- restaura highlights após reset do colorscheme
   end,
 })
 
@@ -328,46 +337,41 @@ vim.api.nvim_create_autocmd("FileType", {
 
 -- Cursor: forma e cor por modo (bloco em Normal, barra em Insert)
 vim.api.nvim_set_hl(0, "NormalCursor", { bg = "#908caa" })
-vim.api.nvim_set_hl(0, "InsertCursor", { bg = "#eb6f92" })
+vim.api.nvim_set_hl(0, "InsertCursor", { bg = "#c0bfca" })
 vim.opt.guicursor = table.concat({
   "n-v-c:block-NormalCursor",
   "i-ci-ve:ver25-InsertCursor",
   "r-cr:hor20-NormalCursor",
 }, ",")
 
--- Fundo escuro em Insert: Normal + NormalNC (janelas inativas = padding do Goyo)
-local bg_normal = "#232136"
-local bg_insert = "#090e13"
-local fg_text   = "#e0def4"
-
-local function apply_insert_colors()
-  vim.api.nvim_set_hl(0, "Normal",        { bg = bg_insert, fg = fg_text })
-  vim.api.nvim_set_hl(0, "NormalNC",      { bg = bg_insert })
-  vim.api.nvim_set_hl(0, "NormalFloat",   { bg = bg_insert })
-  vim.api.nvim_set_hl(0, "EndOfBuffer",   { bg = bg_insert, fg = bg_insert })
-  vim.api.nvim_set_hl(0, "StatusLine",    { bg = bg_insert, fg = "#6e6a86" })
-  vim.api.nvim_set_hl(0, "StatusLineNC",  { bg = bg_insert, fg = bg_insert })
-  vim.api.nvim_set_hl(0, "TabLineFill",   { bg = bg_insert })
-  vim.api.nvim_set_hl(0, "TabLine",       { bg = bg_insert, fg = bg_insert })
-  vim.api.nvim_set_hl(0, "TabLineSel",    { bg = bg_insert, fg = bg_insert })
-  vim.cmd("redraw!")
+-- Fundo por modo Insert/Normal
+-- Em Insert: só muda o cursor
+apply_insert_colors = function()
+  vim.api.nvim_set_hl(0, "InsertCursor", { bg = "#c0bfca" })
 end
 
-local function apply_normal_colors()
-  vim.api.nvim_set_hl(0, "Normal",        { bg = bg_normal, fg = fg_text })
-  vim.api.nvim_set_hl(0, "NormalNC",      { bg = bg_normal })
-  vim.api.nvim_set_hl(0, "NormalFloat",   { bg = bg_normal })
-  vim.api.nvim_set_hl(0, "EndOfBuffer",   { bg = bg_normal, fg = "#393552" })
-  vim.api.nvim_set_hl(0, "StatusLine",    { bg = "#2a273f", fg = "#908caa" })
-  vim.api.nvim_set_hl(0, "StatusLineNC",  { bg = "#2a273f", fg = "#6e6a86" })
-  vim.api.nvim_set_hl(0, "TabLineFill",   { bg = bg_normal })
-  vim.api.nvim_set_hl(0, "TabLine",       { bg = bg_normal, fg = "#6e6a86" })
-  vim.api.nvim_set_hl(0, "TabLineSel",    { bg = bg_normal, fg = fg_text })
+-- Em Normal: restaura cursor; se veio do GoyoLeave, restaura highlights completos
+apply_normal_colors = function()
   vim.api.nvim_set_hl(0, "NormalCursor", { bg = "#908caa" })
-  vim.api.nvim_set_hl(0, "InsertCursor", { bg = "#eb6f92" })
+  vim.api.nvim_set_hl(0, "InsertCursor", { bg = "#c0bfca" })
   if writing_mode then
     vim.api.nvim_set_hl(0, "WcFloat", { fg = "#6e6a86", bg = "NONE" })
+    return
   end
+  -- Restaura highlights após reset do colorscheme (GoyoLeave)
+  vim.api.nvim_set_hl(0, "Normal",       { bg = bg_normal, fg = fg_text })
+  vim.api.nvim_set_hl(0, "NormalNC",     { bg = bg_normal })
+  vim.api.nvim_set_hl(0, "NormalFloat",  { bg = bg_normal })
+  vim.api.nvim_set_hl(0, "EndOfBuffer",  { bg = bg_normal, fg = "#393552" })
+  vim.api.nvim_set_hl(0, "StatusLine",   { bg = "#2a273f", fg = "#908caa" })
+  vim.api.nvim_set_hl(0, "StatusLineNC", { bg = "#2a273f", fg = "#6e6a86" })
+  vim.api.nvim_set_hl(0, "TabLineFill",  { bg = bg_normal })
+  vim.api.nvim_set_hl(0, "TabLine",      { bg = bg_normal, fg = "#6e6a86" })
+  vim.api.nvim_set_hl(0, "TabLineSel",   { bg = bg_normal, fg = fg_text })
+  vim.api.nvim_set_hl(0, "WinSeparator", { bg = bg_normal, fg = "#393552" })
+  vim.api.nvim_set_hl(0, "VertSplit",    { bg = bg_normal, fg = "#393552" })
+  vim.api.nvim_set_hl(0, "SignColumn",   { bg = bg_normal })
+  vim.api.nvim_set_hl(0, "GoyoPad",     { bg = bg_normal })
   vim.cmd("redraw!")
 end
 
