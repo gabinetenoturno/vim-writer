@@ -601,6 +601,131 @@ map("v", "k",  "gk",  "Linha visual acima")
 -- Adicionar ao dicionário com zg, ignorar com zw
 
 -- Configurações por tipo de arquivo
+-- Dashboard de abertura
+local function open_dashboard()
+  local months = { "jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez" }
+  local function fmt_date(iso)
+    local _, m, d = iso:match("(%d+)-(%d+)-(%d+)")
+    return d .. " " .. (months[tonumber(m)] or m)
+  end
+
+  local recent = {}
+  local seen   = {}
+  local f = io.open(vim.fn.expand("~/WriteDir/sessoes.csv"), "r")
+  if f then
+    local skip = true
+    for line in f:lines() do
+      if skip then skip = false
+      elseif #recent < 5 then
+        local date     = line:match('^([^,]+)')
+        local palavras = line:match('^[^,]+,[^,]+,[^,]+,([^,]+)')
+        local doc      = line:match('"([^"]+)"')
+        if doc and not seen[doc] then
+          seen[doc] = true
+          local short = doc:gsub(vim.fn.expand("~/WriteDir") .. "/", "")
+          table.insert(recent, { date = date, palavras = tonumber(palavras) or 0, doc = short })
+        end
+      end
+    end
+    f:close()
+  end
+
+  local sep = "  " .. string.rep("─", 48)
+  local lines = { "" }
+  local hls   = {}   -- { line_idx (0-based), hl_group }
+
+  local ascii_vim = {
+    "  ██╗   ██╗██╗███╗   ███╗",
+    "  ██║   ██║██║████╗ ████║",
+    "  ██║   ██║██║██╔████╔██║",
+    "  ╚██╗ ██╔╝██║██║╚██╔╝██║",
+    "   ╚████╔╝ ██║██║ ╚═╝ ██║",
+    "    ╚═══╝  ╚═╝╚═╝     ╚═╝",
+  }
+  local ascii_writer = {
+    "  ██╗    ██╗██████╗ ██╗████████╗███████╗██████╗ ",
+    "  ██║    ██║██╔══██╗██║╚══██╔══╝██╔════╝██╔══██╗",
+    "  ██║ █╗ ██║██████╔╝██║   ██║   █████╗  ██████╔╝",
+    "  ██║███╗██║██╔══██╗██║   ██║   ██╔══╝  ██╔══██╗",
+    "  ╚███╔███╔╝██║  ██║██║   ██║   ███████╗██║  ██║",
+    "   ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝",
+  }
+
+  for _, l in ipairs(ascii_vim) do
+    table.insert(hls, { #lines, "DashVim" })
+    table.insert(lines, l)
+  end
+  table.insert(lines, "")
+  for _, l in ipairs(ascii_writer) do
+    table.insert(hls, { #lines, "DashWriter" })
+    table.insert(lines, l)
+  end
+  table.insert(lines, "")
+  table.insert(lines, sep)
+  table.insert(lines, "")
+  table.insert(hls, { #lines, "DashSection" })
+  table.insert(lines, "  recentes")
+  table.insert(lines, "")
+
+  local function pad(s, w)
+    return s .. string.rep(" ", math.max(0, w - vim.fn.strdisplaywidth(s)))
+  end
+
+  if #recent == 0 then
+    table.insert(lines, "  nenhuma sessão registrada ainda")
+  else
+    for i, s in ipairs(recent) do
+      local short = s.doc
+      if vim.fn.strdisplaywidth(short) > 36 then
+        short = "…" .. short:sub(-35)
+      end
+      local words = wc_format(s.palavras)
+      table.insert(hls, { #lines, "DashFile" })
+      table.insert(lines, string.format("  %d  %s  %s · %5s p",
+        i, pad(short, 36), fmt_date(s.date), words))
+    end
+  end
+
+  table.insert(lines, "")
+  table.insert(lines, sep)
+  table.insert(lines, "")
+
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[buf].buftype   = "nofile"
+  vim.bo[buf].bufhidden = "wipe"
+  vim.bo[buf].swapfile  = false
+  vim.api.nvim_buf_set_name(buf, "vim-writer")
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = false
+
+  vim.api.nvim_set_hl(0, "DashVim",     { fg = "#c4a7e7" })
+  vim.api.nvim_set_hl(0, "DashWriter",  { fg = "#9ccfd8" })
+  vim.api.nvim_set_hl(0, "DashSection", { fg = "#6e6a86", bold = true })
+  vim.api.nvim_set_hl(0, "DashFile",    { fg = "#e0def4" })
+  vim.api.nvim_set_hl(0, "NsStatsBold", { fg = "#e0def4", bg = "#2a273f", bold = true })
+  local ns_dash = vim.api.nvim_create_namespace("dash")
+  for _, h in ipairs(hls) do
+    vim.api.nvim_buf_add_highlight(buf, ns_dash, h[2], h[1], 0, -1)
+  end
+
+  local base = vim.fn.expand("~/WriteDir") .. "/"
+  for i, s in ipairs(recent) do
+    vim.keymap.set("n", tostring(i), function()
+      vim.cmd("edit " .. vim.fn.fnameescape(base .. s.doc))
+    end, { buffer = buf, nowait = true, silent = true })
+  end
+
+  vim.api.nvim_win_set_buf(0, buf)
+end
+
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    if vim.fn.argc() == 1 and vim.fn.isdirectory(vim.fn.argv(0)) == 1 then
+      open_dashboard()
+    end
+  end,
+})
+
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "markdown", "text" },
   callback = function()
