@@ -801,6 +801,15 @@ end
 vim.api.nvim_create_autocmd("InsertEnter", { callback = apply_insert_colors })
 vim.api.nvim_create_autocmd("InsertLeave", { callback = apply_normal_colors })
 
+-- Autosave
+vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave" }, {
+  callback = function()
+    if vim.bo.buftype == "" and vim.bo.modifiable and vim.fn.expand("%") ~= "" then
+      vim.cmd("silent! write")
+    end
+  end,
+})
+
 -- Statusline mínima com contagem de palavras
 vim.opt.laststatus = 2
 vim.opt.statusline = "  %f %m%r  %=%{wordcount().words}p  %l:%c  "
