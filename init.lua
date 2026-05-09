@@ -23,6 +23,7 @@ vim.opt.number      = false
 vim.opt.relativenumber = false
 vim.opt.cursorline  = false
 vim.opt.signcolumn  = "no"
+vim.opt.statuscolumn = "  "           -- margem esquerda mínima (2 espaços)
 vim.opt.mouse       = "a"
 vim.opt.clipboard   = "unnamedplus"
 vim.opt.undofile    = true
@@ -42,8 +43,8 @@ if vim.g.neovide then
   vim.g.neovide_scroll_animation_length = 0.2
   vim.g.neovide_padding_top         = 8
   vim.g.neovide_padding_bottom      = 8
-  vim.g.neovide_padding_left        = 8
-  vim.g.neovide_padding_right       = 8
+  vim.g.neovide_padding_left        = 48
+  vim.g.neovide_padding_right       = 48
 
   vim.keymap.set({ "n", "i", "v" }, "<F11>", function()
     vim.g.neovide_fullscreen = not vim.g.neovide_fullscreen
