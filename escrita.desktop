@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Escrita
+GenericName=Editor de ficção
+Comment=Abre o Neovide no diretório de projetos
+Exec=bash -c "cd /home/pin/WriteDir && neovide ."
+Icon=neovide
+Terminal=false
+StartupNotify=true
+StartupWMClass=neovide
+Categories=Office;WordProcessor;
+Keywords=escrita;ficção;neovim;
