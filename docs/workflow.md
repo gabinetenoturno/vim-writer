@@ -81,6 +81,14 @@ Sempre em modo Normal (Esc antes):
 <Space>w   → desliga
 ```
 
+A largura do Goyo persiste entre sessões. Para alterar:
+
+```
+:Goyo 80   → redefine a largura para 80 colunas (funciona com o Goyo aberto ou fechado)
+```
+
+O valor é salvo automaticamente e usado na próxima vez que `<Space>w` for pressionado.
+
 ---
 
 ## Modo leitura

@@ -50,6 +50,9 @@ if vim.g.neovide then
   end)
 end
 
+-- Forward declarations (usadas dentro do config do lazy antes de serem definidas abaixo)
+local goyo_width, save_fonts
+
 -- Plugins
 require("lazy").setup({
 
@@ -68,7 +71,17 @@ require("lazy").setup({
   },
 
   -- Modo foco: margem centralizada
-  { "junegunn/goyo.vim",      cmd = "Goyo" },
+  { "junegunn/goyo.vim", cmd = "Goyo", config = function()
+    -- Intercepta :Goyo N (inclusive no redimensionamento) para persistir a largura
+    vim.api.nvim_create_user_command("Goyo", function(opts)
+      local arg = vim.trim(opts.args or "")
+      if not opts.bang and arg ~= "" then
+        goyo_width = arg
+        save_fonts()
+      end
+      vim.cmd("call goyo#execute(" .. (opts.bang and 1 or 0) .. ", " .. vim.fn.string(arg) .. ")")
+    end, { force = true, nargs = "?", bang = true })
+  end },
 
   -- Modo foco: escurece parágrafos inativos
   {
@@ -242,6 +255,7 @@ local bg_normal   = "#232136"
 local fg_text     = "#e0def4"
 local font_normal = 14    -- tamanho da fonte no modo normal
 local font_goyo   = 18    -- tamanho da fonte no modo foco (≈ h14 × 1.25)
+goyo_width        = "88"
 local apply_insert_colors, apply_normal_colors
 
 local function set_font(size)
@@ -252,10 +266,10 @@ end
 
 local font_config = vim.fn.stdpath("data") .. "/vim-writer-fonts.lua"
 
-local function save_fonts()
+save_fonts = function()
   local f = io.open(font_config, "w")
   if f then
-    f:write(string.format("return { normal = %d, goyo = %d }\n", font_normal, font_goyo))
+    f:write(string.format("return { normal = %d, goyo = %d, goyo_width = %q }\n", font_normal, font_goyo, goyo_width))
     f:close()
   end
 end
@@ -263,8 +277,9 @@ end
 do
   local ok, cfg = pcall(dofile, font_config)
   if ok and type(cfg) == "table" then
-    font_normal = cfg.normal or font_normal
-    font_goyo   = cfg.goyo   or font_goyo
+    font_normal = cfg.normal      or font_normal
+    font_goyo   = cfg.goyo        or font_goyo
+    goyo_width  = cfg.goyo_width  or goyo_width
     set_font(font_normal)
   end
 end
@@ -459,7 +474,7 @@ local writing_mode = false
 local function toggle_writing()
   writing_mode = not writing_mode
   if writing_mode then
-    vim.cmd("Goyo 88")
+    vim.cmd("Goyo " .. goyo_width)
     vim.opt.spell = false
     vim.keymap.set("i", "<CR>", "<CR><CR>", { buffer = true })
     vim.notify("Modo escrita: ON", vim.log.levels.INFO)
