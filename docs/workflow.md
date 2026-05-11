@@ -103,6 +103,18 @@ Cores por tipo de marcação:
 
 ---
 
+## Limpeza automática de espaços
+
+Ao sair do modo inserção, o editor remove automaticamente espaços extras em todo o buffer: espaços duplos (ou mais) entre palavras são colapsados em um único espaço, e espaços no final das linhas são apagados.
+
+```
+:Sw   → liga/desliga a limpeza automática de espaços
+```
+
+O comportamento vem habilitado por padrão.
+
+---
+
 ## Sessão de foco
 
 Inicia um countdown no canto inferior esquerdo. Ao fim do tempo, uma notificação do KDE exibe as estatísticas e o Neovim abre um popup para confirmar o registro.

@@ -577,6 +577,12 @@ vim.api.nvim_create_user_command("Sd", function()
 end, { desc = "Total de palavras do dia" })
 vim.cmd("cabbrev sd Sd")
 
+vim.api.nvim_create_user_command("Sw", function()
+  vim.g.strip_trailing_ws = not vim.g.strip_trailing_ws
+  vim.notify("Strip whitespace: " .. (vim.g.strip_trailing_ws and "on" or "off"), vim.log.levels.INFO)
+end, { desc = "Toggle remoção de whitespace" })
+vim.cmd("cabbrev sw Sw")
+
 -- Keymaps principais
 local map = function(m, k, v, d) vim.keymap.set(m, k, v, { desc = d, silent = true }) end
 
@@ -821,6 +827,29 @@ vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave" }, {
     end
   end,
 })
+
+-- Remoção de espaços extras (inline e trailing)
+vim.g.strip_trailing_ws = true
+local function strip_ws()
+  if not vim.g.strip_trailing_ws then return end
+  if vim.bo.buftype ~= "" or not vim.bo.modifiable or vim.fn.expand("%") == "" then return end
+  local view = vim.fn.winsaveview()
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  local changed = false
+  for i, line in ipairs(lines) do
+    local new = line:gsub(" +", " "):gsub("%s+$", "")
+    if new ~= line then
+      lines[i] = new
+      changed = true
+    end
+  end
+  if changed then
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+  end
+  vim.fn.winrestview(view)
+end
+vim.api.nvim_create_autocmd("InsertLeave", { callback = strip_ws })
+vim.api.nvim_create_autocmd("BufWritePre", { callback = strip_ws })
 
 -- Statusline mínima com contagem de palavras
 vim.opt.laststatus = 2
