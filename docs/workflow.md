@@ -169,6 +169,7 @@ Dentro do netrw: j/k para mover, Enter para abrir, - para subir um nível.
 ## Outros atalhos úteis
 
 ```
+<Space>F   → liga/desliga tela cheia (também: F11)
 <Space>r   → liga/desliga modo leitura (highlights de revisão)
 <Space>s   → liga/desliga correção ortográfica
 <Space>x   → exporta arquivo atual para PDF (requer xelatex)

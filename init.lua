@@ -587,6 +587,7 @@ vim.cmd("cabbrev sw Sw")
 local map = function(m, k, v, d) vim.keymap.set(m, k, v, { desc = d, silent = true }) end
 
 map("n", "<leader>w",  toggle_writing,               "Toggle modo escrita")
+map("n", "<leader>F",  function() vim.g.neovide_fullscreen = not vim.g.neovide_fullscreen end, "Toggle tela cheia")
 map("n", "<leader>r",  toggle_reading,               "Toggle modo leitura")
 map("n", "<leader>s",  function()
   if writing_mode then
