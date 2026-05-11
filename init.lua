@@ -115,11 +115,12 @@ require("lazy").setup({
       { "<leader>e", "<cmd>NERDTreeToggle<cr>", desc = "Explorador de arquivos" },
     },
     init = function()
-      vim.g.NERDTreeShowHidden      = 1
-      vim.g.NERDTreeMinimalUI       = 1
+      vim.g.NERDTreeShowHidden          = 1
+      vim.g.NERDTreeMinimalUI           = 1
       vim.g.NERDTreeDirArrowExpandable  = "▸"
       vim.g.NERDTreeDirArrowCollapsible = "▾"
-      vim.g.NERDTreeWinSize         = 30
+      vim.g.NERDTreeWinSize             = 30
+      vim.g.NERDTreeQuitOnOpen          = 1
     end,
   },
 
@@ -753,6 +754,38 @@ vim.api.nvim_create_autocmd("VimEnter", {
   end,
 })
 
+local _nt_timer = vim.uv.new_timer()
+vim.api.nvim_create_autocmd("CursorMoved", {
+  pattern = "*",
+  callback = function()
+    if vim.bo.filetype ~= "nerdtree" then return end
+    _nt_timer:stop()
+    _nt_timer:start(250, 0, vim.schedule_wrap(function()
+      local ok, path = pcall(vim.fn.eval, "g:NERDTreeFileNode.GetSelected().path.str()")
+      if not ok or not path or path == "" then return end
+      if vim.fn.isdirectory(path) == 1 then return end
+      local nt_win = vim.api.nvim_get_current_win()
+      local preview_win = nil
+      for _, win in ipairs(vim.api.nvim_list_wins()) do
+        if win ~= nt_win and vim.bo[vim.api.nvim_win_get_buf(win)].filetype ~= "nerdtree" then
+          preview_win = win
+          break
+        end
+      end
+      if preview_win then
+        vim.api.nvim_win_call(preview_win, function()
+          if not vim.bo.modified then
+            vim.cmd("silent! edit " .. vim.fn.fnameescape(path))
+          end
+        end)
+      else
+        vim.cmd("rightbelow vsplit " .. vim.fn.fnameescape(path))
+        vim.cmd("wincmd p")
+      end
+    end))
+  end,
+})
+
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "nerdtree",
   callback = function()
@@ -770,8 +803,10 @@ vim.api.nvim_create_autocmd("FileType", {
   callback = function()
     vim.opt_local.spell     = true
     vim.opt_local.wrap      = true
-    vim.opt_local.linebreak = true
+    vim.opt_local.linebreak    = true
+    vim.opt_local.conceallevel = 2
     vim.cmd("PencilSoft")
+    vim.cmd([[syntax match markdownHeadingMarker /^#\+\s/ conceal]])
     vim.keymap.set("i", "--", "— ", { buffer = true })
   end,
 })

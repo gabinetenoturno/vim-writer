@@ -146,12 +146,12 @@ Se estiver digitando quando o tempo esgotar, o popup aparece ao sair do Insert �
 ## Navegar para outro arquivo
 
 ```
-<Space>e   → explorador de arquivos (netrw)
+<Space>e   → abre/fecha o explorador de arquivos (NERDTree)
 <Space>f   → busca fuzzy por nome (Telescope)
 :e caminho → abre arquivo pelo caminho
 ```
 
-Dentro do netrw: j/k para mover, Enter para abrir, - para subir um nível.
+No NERDTree: `j`/`k` navegam entre arquivos, Enter abre e fecha o explorador automaticamente. Ao navegar, o conteúdo do arquivo selecionado aparece na janela ao lado após 250ms (preview automático).
 
 ---
 
