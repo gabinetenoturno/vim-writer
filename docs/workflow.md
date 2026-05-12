@@ -40,11 +40,11 @@ Navegue com j/k, entre em pastas com Enter, abra arquivo com Enter.
 
 | Modo    | Como entrar | Para quê                  |
 |---------|-------------|---------------------------|
-| Normal  | Esc         | navegar, copiar, salvar   |
+| Normal  | Tab         | navegar, copiar, salvar   |
 | Insert  | i           | digitar texto             |
 | Visual  | v           | selecionar texto          |
 
-Regra de ouro: pressione Esc sempre que quiser parar de digitar.
+Regra de ouro: pressione **Tab** sempre que quiser parar de digitar (Tab e Esc estão trocados nesta configuração).
 
 ---
 
@@ -54,7 +54,7 @@ Regra de ouro: pressione Esc sempre que quiser parar de digitar.
 i     → Insert antes do cursor
 a     → Insert após o cursor
 o     → nova linha abaixo + Insert
-Esc   → volta para Normal
+Tab   → volta para Normal  (Esc físico insere tab)
 ```
 
 j/k movem por linha visual (funciona corretamente com texto corrido).
@@ -186,6 +186,7 @@ No NERDTree: `j`/`k` navegam entre arquivos, Enter abre e fecha o explorador aut
 ]s / [s    → navega entre erros ortográficos
 zg         → adiciona palavra ao dicionário pessoal
 zw         → marca palavra como errada
+L          → vai para o fim da linha (equivale a $)
 ```
 
 ---
@@ -202,7 +203,7 @@ Enter           → abre
 <Space>w        → liga modo foco
 i               → começa a escrever
 ...texto...
-Esc             → volta ao Normal
+Tab             → volta ao Normal
 :w              → salva
 <Space>w        → desliga modo foco
 
@@ -211,6 +212,6 @@ Esc             → volta ao Normal
 Enter           → abre
 
 i               → escreve no novo arquivo
-Esc
+Tab
 :wq             → salva e fecha
 ```

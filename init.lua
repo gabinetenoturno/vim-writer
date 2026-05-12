@@ -599,6 +599,13 @@ vim.api.nvim_create_user_command("Sw", function()
 end, { desc = "Toggle remoção de whitespace" })
 vim.cmd("cabbrev sw Sw")
 
+-- Swap ESC <-> Tab
+vim.keymap.set({ "i", "n", "v" }, "<Tab>", "<Esc>", { noremap = true })
+vim.keymap.set({ "i", "n", "v" }, "<Esc>", "<Tab>", { noremap = true })
+
+-- L → fim da linha
+vim.keymap.set({ "n", "v" }, "L", "$", { noremap = true })
+
 -- Keymaps principais
 local map = function(m, k, v, d) vim.keymap.set(m, k, v, { desc = d, silent = true }) end
 
