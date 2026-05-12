@@ -180,7 +180,7 @@ def export(project_dir: str, output_name: str = None):
         '  Extension=.ttf,\n'
         ']{Whitman}\n'
         # Tamanho do corpo: 16pt (baselineskip 1.3x)
-        '\\AtBeginDocument{\\fontsize{14pt}{18.2pt}\\selectfont}\n'
+        '\\AtBeginDocument{\\fontsize{13pt}{16.9pt}\\selectfont}\n'
         # Centraliza chapter e chapter* (book class)
         '\\makeatletter\n'
         '\\renewcommand{\\@makechapterhead}[1]{%\n'
@@ -226,7 +226,7 @@ def export(project_dir: str, output_name: str = None):
             '--from=markdown-yaml_metadata_block+raw_tex',
             '-H', hdr_path,
             '-V', 'lang=pt-BR',
-            '-V', 'fontsize=12pt',
+            '-V', 'fontsize=13pt',
             '-V', 'documentclass=book',
             '-V', 'geometry=paperwidth=16cm,paperheight=23cm,'
                   'top=1.5cm,bottom=1.5cm,inner=2cm,outer=1.5cm',
