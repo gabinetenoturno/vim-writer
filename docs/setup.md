@@ -33,6 +33,11 @@ Para exportar para PDF, é necessária uma engine LaTeX:
 sudo pacman -S texlive-basic texlive-fontsrecommended texlive-xetex texlive-latexrecommended
 ```
 
+O script `export-book.py` usa a fonte **Whitman** (Regular, Italic, Bold). Os arquivos
+`.ttf` devem estar em `/usr/local/share/fonts/w/`. Se a fonte não estiver disponível,
+editar o bloco `\setmainfont` no script para usar outra fonte ou remover o bloco
+(voltará à fonte padrão do LaTeX).
+
 ---
 
 ## Neovide (cliente GUI opcional)
