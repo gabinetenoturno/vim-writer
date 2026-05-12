@@ -30,7 +30,7 @@ Nota: hunspell já estava instalado no sistema base.
 
 Para exportar para PDF, é necessária uma engine LaTeX:
 ```
-sudo pacman -S texlive-basic texlive-fontsrecommended
+sudo pacman -S texlive-basic texlive-fontsrecommended texlive-xetex texlive-latexrecommended
 ```
 
 ---
@@ -65,11 +65,12 @@ compatível sem mudanças.
 ## Estrutura de diretórios
 
 ```
+~/DevDir/vim-writer/   → este repositório (config + ferramentas)
 ~/WriteDir/
-├── the-notebook/   → contos e rascunhos avulsos
-├── romance-titulo/ → capítulos de um romance (uma pasta por projeto)
-├── notas/          → wiki global de worldbuilding e personagens
-└── exportado/      → PDFs gerados pelo pandoc
+├── the-notebook/      → contos e rascunhos avulsos
+├── romance-titulo/    → capítulos de um romance (uma pasta por projeto)
+├── notas/             → wiki global de worldbuilding e personagens
+└── exportado/         → PDFs gerados pelo pandoc
 ```
 
 Criar pastas base:
@@ -78,6 +79,10 @@ mkdir -p ~/WriteDir/{notas,exportado}
 ```
 
 Cada novo projeto é uma pasta dentro de `~/WriteDir/`.
+
+O repositório `vim-writer` deve ficar em `~/DevDir/vim-writer/` — o `init.lua`
+referencia o script `export-book.py` por esse caminho. Se clonar em outro lugar,
+ajustar a linha com `export-book.py` no `init.lua`.
 
 ---
 
@@ -146,21 +151,25 @@ Nenhuma mudança de fundo ocorre — o indicador é exclusivamente o cursor.
 
 ## Atalhos principais
 
-| Tecla / Comando | Ação                                                        |
-|-----------------|-------------------------------------------------------------|
-| `<Space>w`      | liga/desliga modo foco                                      |
-| `<Space>s`      | liga/desliga correção ortográfica                           |
-| `<Space>x`      | exporta arquivo atual para PDF                              |
-| `<Space>n`      | abre o wiki de notas                                        |
-| `<Space>e`      | abre/fecha NERDTree                                         |
-| `<Space>f`      | busca arquivo (Telescope)                                   |
-| `<Space>/`      | busca texto no manuscrito (Telescope)                       |
-| `<Space>b`      | lista buffers abertos                                       |
-| `j` / `k`       | movem por linha visual (não linha física)                   |
-| `]s` / `[s`     | próximo/anterior erro ortográfico                           |
-| `zg`            | adiciona palavra ao dicionário                              |
-| `F11`           | fullscreen (Neovide apenas)                                 |
-| `:fz <n>`       | define tamanho da fonte; persiste por modo (normal ou Goyo) |
+| Tecla / Comando   | Ação                                                        |
+|-------------------|-------------------------------------------------------------|
+| `<Space>w`        | liga/desliga modo foco                                      |
+| `<Space>s`        | liga/desliga correção ortográfica                           |
+| `<Space>x`        | exporta arquivo atual para PDF                              |
+| `<Space>n`        | abre o wiki de notas                                        |
+| `<Space>e`        | abre/fecha NERDTree                                         |
+| `<Space>f`        | busca arquivo (Telescope)                                   |
+| `<Space>/`        | busca texto no manuscrito (Telescope)                       |
+| `<Space>b`        | lista buffers abertos                                       |
+| `j` / `k`         | movem por linha visual (não linha física)                   |
+| `]s` / `[s`       | próximo/anterior erro ortográfico                           |
+| `zg`              | adiciona palavra ao dicionário                              |
+| `Tab`             | volta ao modo Normal (Tab e Esc estão trocados)             |
+| `L`               | vai para o fim da linha (equivale a `$`)                    |
+| `F11`             | fullscreen (Neovide apenas)                                 |
+| `:Fz <n>`         | define tamanho da fonte; persiste por modo (normal ou Goyo) |
+| `:ExportBook`     | exporta o livro completo (Rascunho/) para PDF               |
+| `:ExportBook <f>` | exporta com nome de arquivo específico                      |
 
 ---
 
@@ -231,13 +240,20 @@ sudo pacman -S neovim pandoc-cli fzf aspell-pt wl-clipboard
 # 2. Instalar Neovide (opcional, para GUI)
 sudo pacman -S neovide
 
-# 3. Criar estrutura de diretórios
+# 3. Instalar engine LaTeX para exportação de PDF
+sudo pacman -S texlive-basic texlive-fontsrecommended texlive-xetex texlive-latexrecommended
+
+# 4. Clonar este repositório
+mkdir -p ~/DevDir
+git clone <url-do-repo> ~/DevDir/vim-writer
+
+# 5. Criar estrutura de diretórios
 mkdir -p ~/WriteDir/{notas,exportado}
 
-# 4. Copiar configuração
+# 6. Copiar configuração
 mkdir -p ~/.config/nvim
-cp init.lua ~/.config/nvim/
+cp ~/DevDir/vim-writer/init.lua ~/.config/nvim/
 
-# 5. Abrir o Neovim — lazy.nvim instala tudo automaticamente
+# 7. Abrir o Neovim — lazy.nvim instala tudo automaticamente
 nvim
 ```

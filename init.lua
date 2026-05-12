@@ -546,6 +546,37 @@ local function export_pdf()
   end
 end
 
+-- Exportar livro completo (Rascunho/ do projeto atual)
+vim.api.nvim_create_user_command("ExportBook", function(opts)
+  -- Sobe a partir do arquivo aberto até encontrar um dir com Rascunho/
+  local project = nil
+  local file = vim.fn.expand("%:p")
+  if file ~= "" then
+    local dir = vim.fn.fnamemodify(file, ":h")
+    while dir ~= "/" do
+      if vim.uv.fs_stat(dir .. "/Rascunho") then
+        project = dir
+        break
+      end
+      dir = vim.fn.fnamemodify(dir, ":h")
+    end
+  end
+  if not project then
+    vim.notify("Rascunho/ não encontrado a partir do arquivo atual.", vim.log.levels.ERROR)
+    return
+  end
+
+  local script  = vim.fn.expand("~/DevDir/vim-writer/export-book.py")
+  local out_arg = opts.args ~= "" and string.format(" %q", opts.args) or ""
+  vim.notify("Exportando: " .. vim.fn.fnamemodify(project, ":t"), vim.log.levels.INFO)
+  local result = vim.fn.system(string.format("python3 %q %q%s", script, project, out_arg))
+  if vim.v.shell_error == 0 then
+    vim.notify(vim.trim(result), vim.log.levels.INFO)
+  else
+    vim.notify("Erro na exportação:\n" .. result, vim.log.levels.ERROR)
+  end
+end, { nargs = "?", desc = "Exportar livro completo para PDF" })
+
 -- Sessão de foco: comando
 vim.api.nvim_create_user_command("Sn", function(opts)
   if ns_state.timer then
@@ -772,6 +803,22 @@ vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
     if vim.fn.argc() == 1 and vim.fn.isdirectory(vim.fn.argv(0)) == 1 then
       open_dashboard()
+    end
+  end,
+})
+
+-- Muda o diretório local para a raiz do projeto (git) ao entrar num buffer
+vim.api.nvim_create_autocmd("BufEnter", {
+  callback = function()
+    local file = vim.fn.expand("%:p")
+    if file == "" or vim.bo.buftype ~= "" then return end
+    local dir = vim.fn.fnamemodify(file, ":h")
+    while dir ~= "/" do
+      if vim.uv.fs_stat(dir .. "/.git") then
+        vim.cmd("lcd " .. vim.fn.fnameescape(dir))
+        return
+      end
+      dir = vim.fn.fnamemodify(dir, ":h")
     end
   end,
 })
