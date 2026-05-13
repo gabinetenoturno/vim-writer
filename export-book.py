@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-export-book.py — Exporta Rascunho/ de um projeto para PDF polido.
+export-book.py — Exporta Draft/ de um projeto para PDF polido.
 Uso: python3 export-book.py <caminho-do-projeto> [nome-saida.pdf]
 
-Convencoes de nomenclatura em Rascunho/:
-  Pre-conteudo/ (dir sem numero inicial):
+Convencoes de nomenclatura em Draft/:
+  Front-matter/ (dir sem numero inicial):
     Xa - Titulo.md  => pagina impar; se for o primeiro arquivo, vira folha de rosto
     Xb - Titulo.md  => pagina par (clearpage), verso do Xa
     X  - Titulo.md  => pagina impar (cleardoublepage)
@@ -35,14 +35,14 @@ def sort_key(name: str):
     return (int(m.group(1)) if m else 0, name)
 
 
-def collect_files(rascunho: Path):
+def collect_files(draft: Path):
     """
     Retorna lista ordenada de (Path, break_before, is_pretextual, is_title_page).
       break_before: 'odd' | 'even' | 'cont'
-      is_pretextual: True para arquivos do pre-conteudo
-      is_title_page: True apenas para o primeiro arquivo 'a' do pre-conteudo
+      is_pretextual: True para arquivos do front-matter
+      is_title_page: True apenas para o primeiro arquivo 'a' do front-matter
     """
-    subdirs = sorted(rascunho.iterdir(), key=lambda d: sort_key(d.name))
+    subdirs = sorted(draft.iterdir(), key=lambda d: sort_key(d.name))
     subdirs = [d for d in subdirs if d.is_dir()]
 
     pre_dirs   = [d for d in subdirs if not re.match(r'^\d', d.name)]
@@ -81,51 +81,61 @@ def md_inline_to_latex(text: str) -> str:
     return text
 
 
-def format_title_page(content: str, timestamp: str) -> str:
-    """Converte a folha de rosto para LaTeX centralizado vertical e horizontalmente."""
+def _render_md_lines(content: str) -> list[str]:
+    """Converte linhas markdown para comandos LaTeX (sem envoltório de página)."""
     sizes = ['\\Huge', '\\huge', '\\LARGE', '\\Large', '\\large', '\\normalsize']
-    lines = ['\\begin{titlepage}', '\\null', '\\vfill', '\\centering']
-
+    out = []
     for line in content.strip().split('\n'):
         line = line.strip()
         if not line:
-            lines.append('\\vspace{0.8em}')
+            out.append('\\vspace{0.8em}')
             continue
         m = re.match(r'^(#{1,6})\s+(.+)', line)
         if m:
-            level  = len(m.group(1))
-            text   = md_inline_to_latex(m.group(2).strip())
-            size   = sizes[min(level - 1, 5)]
-            lines.append(f'{{{size} {text}\\par}}')
+            level = len(m.group(1))
+            text  = md_inline_to_latex(m.group(2).strip())
+            size  = sizes[min(level - 1, 5)]
+            out.append(f'{{{size} {text}\\par}}')
         else:
-            text = md_inline_to_latex(line)
-            lines.append(f'{{\\normalsize {text}\\par}}')
+            out.append(f'{{\\normalsize {md_inline_to_latex(line)}\\par}}')
+    return out
 
-    lines += [
-        '\\vfill',
-        f'{{\\small\\centering {timestamp}\\par}}',
-        '\\end{titlepage}',
-    ]
+
+def format_centered_page(content: str, timestamp: str = None) -> str:
+    """Página pré-textual centralizada (folha de rosto, agradecimentos, etc.)."""
+    lines = ['\\begin{pretext}', '\\thispagestyle{empty}', '\\vspace*{\\fill}', '\\centering']
+    lines += _render_md_lines(content)
+    lines.append('\\vspace*{\\fill}')
+    if timestamp:
+        lines += [f'{{\\small {timestamp}\\par}}', '\\vspace*{1em}']
+    lines.append('\\end{pretext}')
     return '\n'.join(lines)
 
 
-def build_combined(files) -> str:
-    # Inicia sem numeracao e sem cabecalho (pre-textual)
-    parts = ['\\pagestyle{empty}\n\n']
+def format_left_page(content: str) -> str:
+    """Página verso (dados do livro): alinhada à esquerda, sem centralização."""
+    lines = ['\\begin{pretext}', '\\thispagestyle{empty}', '\\raggedright']
+    lines += _render_md_lines(content)
+    lines.append('\\end{pretext}')
+    return '\n'.join(lines)
+
+
+def build_combined(files, toc_depth: int = 1) -> str:
+    # Contador corre desde a capa (pag 1 = folha de rosto), mas so aparece no conteudo
+    parts = ['\\pagenumbering{arabic}\n\\pagestyle{empty}\n\n']
     prev_pretextual = True
     timestamp = datetime.now().strftime('%d/%m/%Y - %H:%M')
 
     for i, (filepath, break_before, is_pretextual, is_title) in enumerate(files):
         content = filepath.read_text(encoding='utf-8').strip()
 
-        # Transicao pre-textual -> conteudo principal
-        if prev_pretextual and not is_pretextual:
-            # plain: numero de pagina no rodape, sem cabecalho
-            parts.append('\n\n\\cleardoublepage\n\\pagestyle{plain}\n\\pagenumbering{arabic}\n\n')
+        transitioning = prev_pretextual and not is_pretextual
         prev_pretextual = is_pretextual
 
-        # Quebra de pagina (nao antes do primeiro arquivo)
-        if i > 0:
+        if transitioning:
+            # cleardoublepage aqui ja cobre o break_before='odd' do primeiro conto
+            parts.append('\n\n\\cleardoublepage\n\\pagestyle{plain}\n\n')
+        elif i > 0:
             if break_before == 'odd':
                 parts.append('\n\n\\cleardoublepage\n\n')
             elif break_before == 'even':
@@ -133,23 +143,36 @@ def build_combined(files) -> str:
             else:
                 parts.append('\n\n')
 
-        if is_title:
-            parts.append(format_title_page(content, timestamp))
+        if is_pretextual:
+            if re.search(r'sum[aá]rio', filepath.stem, re.IGNORECASE):
+                # addtocontents escreve no .toc antes das entradas; na 2a passagem
+                # do xelatex sobrescreve o \thispagestyle{plain} do book class
+                parts.append(
+                    '\\addtocontents{toc}{\\protect\\thispagestyle{empty}}\n'
+                    f'\\setcounter{{tocdepth}}{{{toc_depth}}}\n'
+                    '\\tableofcontents'
+                )
+            elif break_before == 'even':
+                # sufixo 'b': verso da folha de rosto, sempre pagina 2, alinhado a esquerda
+                parts.append(format_left_page(content))
+            elif is_title:
+                parts.append(format_centered_page(content, timestamp))
+            else:
+                parts.append(format_centered_page(content))
         else:
-            # Primeiro paragrafo de cada conto: sem recuo
-            if not is_pretextual and break_before == 'odd' and not content.startswith('#'):
+            if break_before == 'odd' and not content.startswith('#'):
                 content = '\\noindent ' + content
             parts.append(content)
 
     return ''.join(parts)
 
 
-def export(project_dir: str, output_name: str = None):
-    project  = Path(project_dir).resolve()
-    rascunho = project / 'Rascunho'
+def export(project_dir: str, output_name: str = None, toc_depth: int = 1):
+    project = Path(project_dir).resolve()
+    draft   = project / 'Draft'
 
-    if not rascunho.exists():
-        print(f"Erro: diretorio Rascunho/ nao encontrado em {project}", file=sys.stderr)
+    if not draft.exists():
+        print(f"Erro: diretorio Draft/ nao encontrado em {project}", file=sys.stderr)
         sys.exit(1)
 
     export_dir = Path.home() / 'WriteDir' / 'exportado'
@@ -159,8 +182,8 @@ def export(project_dir: str, output_name: str = None):
         output_name = project.name + '.pdf'
     output_path = export_dir / output_name
 
-    files    = collect_files(rascunho)
-    combined = build_combined(files)
+    files    = collect_files(draft)
+    combined = build_combined(files, toc_depth)
 
     with tempfile.NamedTemporaryFile(
         suffix='.md', mode='w', encoding='utf-8', delete=False
@@ -210,6 +233,9 @@ def export(project_dir: str, output_name: str = None):
         # Paragrafos: sem espaco entre eles, recuo de 1cm (exceto primeiro de cada secao)
         '\\setlength{\\parskip}{0pt}\n'
         '\\setlength{\\parindent}{1cm}\n'
+        # Ambiente vazio usado como involtorio para pandoc reconhecer raw LaTeX
+        # no front-matter sem os efeitos colaterais do titlepage (reset de contador etc.)
+        '\\newenvironment{pretext}{}{}\n'
     )
 
     with tempfile.NamedTemporaryFile(
@@ -243,7 +269,10 @@ def export(project_dir: str, output_name: str = None):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print(f"Uso: {sys.argv[0]} <projeto> [saida.pdf]")
-        sys.exit(1)
-    export(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument('project')
+    p.add_argument('--output', default=None)
+    p.add_argument('--toc-depth', type=int, default=1, dest='toc_depth')
+    args = p.parse_args()
+    export(args.project, args.output, args.toc_depth)

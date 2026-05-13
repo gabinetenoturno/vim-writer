@@ -546,15 +546,15 @@ local function export_pdf()
   end
 end
 
--- Exportar livro completo (Rascunho/ do projeto atual)
+-- Exportar livro completo (Draft/ do projeto atual)
 vim.api.nvim_create_user_command("ExportBook", function(opts)
-  -- Sobe a partir do arquivo aberto até encontrar um dir com Rascunho/
+  -- Sobe a partir do arquivo aberto até encontrar um dir com Draft/
   local project = nil
   local file = vim.fn.expand("%:p")
   if file ~= "" then
     local dir = vim.fn.fnamemodify(file, ":h")
     while dir ~= "/" do
-      if vim.uv.fs_stat(dir .. "/Rascunho") then
+      if vim.uv.fs_stat(dir .. "/Draft") then
         project = dir
         break
       end
@@ -562,14 +562,20 @@ vim.api.nvim_create_user_command("ExportBook", function(opts)
     end
   end
   if not project then
-    vim.notify("Rascunho/ não encontrado a partir do arquivo atual.", vim.log.levels.ERROR)
+    vim.notify("Draft/ não encontrado a partir do arquivo atual.", vim.log.levels.ERROR)
     return
   end
 
-  local script  = vim.fn.expand("~/DevDir/vim-writer/export-book.py")
-  local out_arg = opts.args ~= "" and string.format(" %q", opts.args) or ""
+  local script = vim.fn.expand("~/DevDir/vim-writer/export-book.py")
+  local arg = vim.trim(opts.args or "")
+  local toc_depth
+  if arg:lower() == "cap" then
+    toc_depth = 0
+  else
+    toc_depth = 1  -- default e "Subcap"
+  end
   vim.notify("Exportando: " .. vim.fn.fnamemodify(project, ":t"), vim.log.levels.INFO)
-  local result = vim.fn.system(string.format("python3 %q %q%s", script, project, out_arg))
+  local result = vim.fn.system(string.format("python3 %q %q --toc-depth %d", script, project, toc_depth))
   if vim.v.shell_error == 0 then
     vim.notify(vim.trim(result), vim.log.levels.INFO)
   else

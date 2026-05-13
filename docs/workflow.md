@@ -191,6 +191,41 @@ L          → vai para o fim da linha (equivale a $)
 
 ---
 
+## Exportar livro completo para PDF
+
+O comando `:ExportBook` exporta toda a pasta `Draft/` do projeto para um PDF polido em `~/WriteDir/exportado/`.
+
+```
+:ExportBook         → sumário com capítulos e subcapítulos
+:ExportBook Cap     → sumário só com nomes de capítulos
+:ExportBook Subcap  → sumário com capítulos e subcapítulos (igual ao padrão)
+```
+
+O script sobe a árvore de diretórios a partir do arquivo aberto até encontrar uma pasta `Draft/`.
+
+### Estrutura esperada de `Draft/`
+
+```
+Draft/
+├── Front-matter/          ← dir sem número inicial: páginas pré-textuais
+│   ├── 1a - Folha de Rosto.md   → folha de rosto (centralizada, com data)
+│   ├── 1b - Dados.md            → verso da folha de rosto (pág. 2, alinhada à esquerda)
+│   ├── 2 - Sumario.md           → sumário gerado automaticamente
+│   └── 3 - Agradecimentos.md   → qualquer outra página pré-textual (centralizada)
+└── 1 - Nome do Conto/     ← dir com número inicial: capítulo/conto
+    ├── 01 - cena.md
+    └── 02 - cena.md
+```
+
+Convenção de sufixos nos arquivos de `Front-matter/`:
+- `Xa` → página ímpar (a folha de rosto deve ser sempre o primeiro `a`)
+- `Xb` → página par — sempre o verso (página 2 quando seguir a folha de rosto)
+- `X`  → página ímpar (cleardoublepage)
+
+A numeração de páginas começa invisível desde a folha de rosto (página 1) e só aparece impressa a partir do primeiro capítulo, mostrando o número real da página física.
+
+---
+
 ## Sessão completa de exemplo
 
 ```
