@@ -24,10 +24,13 @@ Design:
 import os
 import re
 import sys
+import tomllib
 import subprocess
 import tempfile
 from datetime import datetime
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).parent
 
 
 def sort_key(name: str):
@@ -35,7 +38,7 @@ def sort_key(name: str):
     return (int(m.group(1)) if m else 0, name)
 
 
-def collect_files(draft: Path):
+def collect_files(draft: Path, include_front_matter: bool = True):
     """
     Retorna lista ordenada de (Path, break_before, is_pretextual, is_title_page).
       break_before: 'odd' | 'even' | 'cont'
@@ -45,7 +48,7 @@ def collect_files(draft: Path):
     subdirs = sorted(draft.iterdir(), key=lambda d: sort_key(d.name))
     subdirs = [d for d in subdirs if d.is_dir()]
 
-    pre_dirs   = [d for d in subdirs if not re.match(r'^\d', d.name)]
+    pre_dirs   = [d for d in subdirs if not re.match(r'^\d', d.name)] if include_front_matter else []
     story_dirs = [d for d in subdirs if re.match(r'^\d', d.name)]
 
     result = []
@@ -167,44 +170,39 @@ def build_combined(files, toc_depth: int = 1) -> str:
     return ''.join(parts)
 
 
-def export(project_dir: str, output_name: str = None, toc_depth: int = 1):
-    project = Path(project_dir).resolve()
-    draft   = project / 'Draft'
+def load_settings(path: Path) -> dict:
+    if path.exists():
+        with open(path, 'rb') as f:
+            return tomllib.load(f)
+    return {}
 
-    if not draft.exists():
-        print(f"Erro: diretorio Draft/ nao encontrado em {project}", file=sys.stderr)
-        sys.exit(1)
 
-    export_dir = Path.home() / 'WriteDir' / 'exportado'
-    export_dir.mkdir(parents=True, exist_ok=True)
+def build_latex_header(cfg: dict) -> str:
+    f = cfg.get('font', {})
+    c = cfg.get('content', {})
 
-    if not output_name:
-        output_name = project.name + '.pdf'
-    output_path = export_dir / output_name
+    family      = f.get('family',      'Whitman')
+    path        = f.get('path',        '/usr/local/share/fonts/w/')
+    upright     = f.get('upright',     'Whitman_RomanOsF')
+    italic      = f.get('italic',      'Whitman_ItalicOsF')
+    bold        = f.get('bold',        'Whitman_BoldOsF')
+    bold_italic = f.get('bold_italic', 'Whitman_ItalicOsF')
+    extension   = f.get('extension',   '.ttf')
+    size_pt     = f.get('size_pt',     13)
+    leading_pt  = f.get('leading_pt',  16.9)
+    indent_cm   = c.get('paragraph_indent_cm', 1.0)
 
-    files    = collect_files(draft)
-    combined = build_combined(files, toc_depth)
-
-    with tempfile.NamedTemporaryFile(
-        suffix='.md', mode='w', encoding='utf-8', delete=False
-    ) as tmp:
-        tmp.write(combined)
-        tmp_path = tmp.name
-
-    latex_header = (
-        # Fonte principal: Whitman (regular, italic, bold)
+    return (
         '\\usepackage{fontspec}\n'
         '\\setmainfont[\n'
-        '  Path=/usr/local/share/fonts/w/,\n'
-        '  UprightFont=Whitman_RomanOsF,\n'
-        '  ItalicFont=Whitman_ItalicOsF,\n'
-        '  BoldFont=Whitman_BoldOsF,\n'
-        '  BoldItalicFont=Whitman_ItalicOsF,\n'
-        '  Extension=.ttf,\n'
-        ']{Whitman}\n'
-        # Tamanho do corpo: 16pt (baselineskip 1.3x)
-        '\\AtBeginDocument{\\fontsize{13pt}{16.9pt}\\selectfont}\n'
-        # Centraliza chapter e chapter* (book class)
+        f'  Path={path},\n'
+        f'  UprightFont={upright},\n'
+        f'  ItalicFont={italic},\n'
+        f'  BoldFont={bold},\n'
+        f'  BoldItalicFont={bold_italic},\n'
+        f'  Extension={extension},\n'
+        f']{{{family}}}\n'
+        f'\\AtBeginDocument{{\\fontsize{{{size_pt}pt}}{{{leading_pt}pt}}\\selectfont}}\n'
         '\\makeatletter\n'
         '\\renewcommand{\\@makechapterhead}[1]{%\n'
         '  \\vspace*{50\\p@}\n'
@@ -219,7 +217,6 @@ def export(project_dir: str, output_name: str = None, toc_depth: int = 1):
         '    \\Huge\\bfseries #1\\par\\nobreak\n'
         '    \\vskip 40\\p@\n'
         '  }}\n'
-        # Centraliza section, subsection, subsubsection
         '\\renewcommand\\section{\\@startsection{section}{1}{\\z@}\n'
         '  {-3.5ex \\@plus -1ex \\@minus -.2ex}{2.3ex \\@plus.2ex}\n'
         '  {\\normalfont\\Large\\bfseries\\centering}}\n'
@@ -230,19 +227,59 @@ def export(project_dir: str, output_name: str = None, toc_depth: int = 1):
         '  {-3.25ex\\@plus -1ex \\@minus -.2ex}{1.5ex \\@plus .2ex}\n'
         '  {\\normalfont\\normalsize\\bfseries\\centering}}\n'
         '\\makeatother\n'
-        # Paragrafos: sem espaco entre eles, recuo de 1cm (exceto primeiro de cada secao)
         '\\setlength{\\parskip}{0pt}\n'
-        '\\setlength{\\parindent}{1cm}\n'
-        # Ambiente vazio usado como involtorio para pandoc reconhecer raw LaTeX
-        # no front-matter sem os efeitos colaterais do titlepage (reset de contador etc.)
+        f'\\setlength{{\\parindent}}{{{indent_cm}cm}}\n'
         '\\newenvironment{pretext}{}{}\n'
     )
+
+
+def export(project_dir: str, output_name: str = None, profile: str = 'settings'):
+    cfg = load_settings(SCRIPT_DIR / 'export-settings' / f'{profile}.toml')
+
+    project = Path(project_dir).resolve()
+    draft   = project / 'Draft'
+
+    if not draft.exists():
+        print(f"Erro: diretorio Draft/ nao encontrado em {project}", file=sys.stderr)
+        sys.exit(1)
+
+    export_dir = Path.home() / 'WriteDir' / 'exportado'
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    if not output_name:
+        output_name = project.name + '.pdf'
+    output_path = export_dir / output_name
+
+    c          = cfg.get('content', {})
+    include_fm = c.get('include_front_matter', True)
+    toc_depth  = c.get('toc_depth', 0)
+    files      = collect_files(draft, include_fm)
+    combined   = build_combined(files, toc_depth)
+
+    with tempfile.NamedTemporaryFile(
+        suffix='.md', mode='w', encoding='utf-8', delete=False
+    ) as tmp:
+        tmp.write(combined)
+        tmp_path = tmp.name
 
     with tempfile.NamedTemporaryFile(
         suffix='.tex', mode='w', encoding='utf-8', delete=False
     ) as hdr:
-        hdr.write(latex_header)
+        hdr.write(build_latex_header(cfg))
         hdr_path = hdr.name
+
+    p    = cfg.get('page', {})
+    w    = p.get('width_cm',         16)
+    h    = p.get('height_cm',        23)
+    top  = p.get('margin_top_cm',   1.5)
+    bot  = p.get('margin_bottom_cm', 1.5)
+    inn  = p.get('margin_inner_cm',  2.0)
+    out  = p.get('margin_outer_cm',  1.5)
+    geo  = (f"paperwidth={w}cm,paperheight={h}cm,"
+            f"top={top}cm,bottom={bot}cm,inner={inn}cm,outer={out}cm")
+
+    lang = cfg.get('content', {}).get('language', 'pt-BR')
+    size = cfg.get('font', {}).get('size_pt', 13)
 
     try:
         cmd = [
@@ -251,11 +288,10 @@ def export(project_dir: str, output_name: str = None, toc_depth: int = 1):
             '--pdf-engine=xelatex',
             '--from=markdown-yaml_metadata_block+raw_tex',
             '-H', hdr_path,
-            '-V', 'lang=pt-BR',
-            '-V', 'fontsize=13pt',
+            '-V', f'lang={lang}',
+            '-V', f'fontsize={size}pt',
             '-V', 'documentclass=book',
-            '-V', 'geometry=paperwidth=16cm,paperheight=23cm,'
-                  'top=1.5cm,bottom=1.5cm,inner=2cm,outer=1.5cm',
+            '-V', f'geometry={geo}',
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode == 0:
@@ -273,6 +309,6 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('project')
     p.add_argument('--output', default=None)
-    p.add_argument('--toc-depth', type=int, default=1, dest='toc_depth')
+    p.add_argument('--profile', default='settings')
     args = p.parse_args()
-    export(args.project, args.output, args.toc_depth)
+    export(args.project, args.output, args.profile)

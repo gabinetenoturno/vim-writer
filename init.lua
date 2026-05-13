@@ -566,22 +566,48 @@ vim.api.nvim_create_user_command("ExportBook", function(opts)
     return
   end
 
-  local script = vim.fn.expand("~/DevDir/vim-writer/export-book.py")
-  local arg = vim.trim(opts.args or "")
-  local toc_depth
-  if arg:lower() == "cap" then
-    toc_depth = 0
-  else
-    toc_depth = 1  -- default e "Subcap"
+  local script       = vim.fn.expand("~/DevDir/vim-writer/export-book.py")
+  local settings_dir = vim.fn.expand("~/DevDir/vim-writer/export-settings/")
+
+  -- Coleta perfis: todo .toml exceto settings.default.toml
+  local profiles = {}
+  for _, f in ipairs(vim.fn.glob(settings_dir .. "*.toml", false, true)) do
+    local name = vim.fn.fnamemodify(f, ":t:r")
+    if name ~= "settings.default" then
+      table.insert(profiles, name)
+    end
   end
+  -- settings (padrão) sempre primeiro; demais em ordem alfabética
+  table.sort(profiles, function(a, b)
+    if a == "settings" then return true end
+    if b == "settings" then return false end
+    return a < b
+  end)
+
+  local chosen = profiles[1] or "settings"
+  if #profiles > 1 then
+    local menu = { "Perfil de exportação:" }
+    for i, name in ipairs(profiles) do
+      local label = name == "settings" and name .. " (padrão)" or name
+      table.insert(menu, i .. ". " .. label)
+    end
+    local idx = vim.fn.inputlist(menu)
+    if idx < 1 or idx > #profiles then
+      vim.notify("Exportação cancelada.", vim.log.levels.WARN)
+      return
+    end
+    chosen = profiles[idx]
+  end
+
+  local profile_arg = chosen ~= "settings" and string.format(" --profile %q", chosen) or ""
   vim.notify("Exportando: " .. vim.fn.fnamemodify(project, ":t"), vim.log.levels.INFO)
-  local result = vim.fn.system(string.format("python3 %q %q --toc-depth %d", script, project, toc_depth))
+  local result = vim.fn.system(string.format("python3 %q %q%s", script, project, profile_arg))
   if vim.v.shell_error == 0 then
     vim.notify(vim.trim(result), vim.log.levels.INFO)
   else
     vim.notify("Erro na exportação:\n" .. result, vim.log.levels.ERROR)
   end
-end, { nargs = "?", desc = "Exportar livro completo para PDF" })
+end, { nargs = 0, desc = "Exportar livro completo para PDF" })
 
 -- Sessão de foco: comando
 vim.api.nvim_create_user_command("Sn", function(opts)

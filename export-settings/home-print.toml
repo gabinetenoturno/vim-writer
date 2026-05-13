@@ -1,0 +1,27 @@
+# Configurações de exportação — export-book.py
+# Para restaurar os padrões: cp settings.default.toml settings.toml
+
+[font]
+family      = "Whitman"
+path        = "/usr/local/share/fonts/w/"
+upright     = "Whitman_RomanOsF"
+italic      = "Whitman_ItalicOsF"
+bold        = "Whitman_BoldOsF"
+bold_italic = "Whitman_ItalicOsF"
+extension   = ".ttf"
+size_pt     = 13       # tamanho do corpo de texto em pt
+leading_pt  = 16.9     # espaçamento entre linhas (1.3× o tamanho é um bom valor)
+
+[page]
+width_cm         = 21.0  # largura do papel (A4)
+height_cm        = 29.7  # altura do papel (A4)
+margin_top_cm    = 2.0
+margin_bottom_cm = 2.0
+margin_inner_cm  = 2.0   # margem interna (lombada)
+margin_outer_cm  = 2.0   # margem externa
+
+[content]
+include_front_matter = true   # false → ignora tudo em Front-matter/ (só os contos)
+language             = "pt-BR"
+paragraph_indent_cm  = 1.0
+toc_depth            = 0      # 0 = só capítulos, 1 = capítulos + subcapítulos

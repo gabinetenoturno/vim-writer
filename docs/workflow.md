@@ -195,13 +195,69 @@ L          → vai para o fim da linha (equivale a $)
 
 O comando `:ExportBook` exporta toda a pasta `Draft/` do projeto para um PDF polido em `~/WriteDir/exportado/`.
 
+Se houver mais de um perfil em `export-settings/`, um menu numerado é exibido:
+
 ```
-:ExportBook         → sumário com capítulos e subcapítulos
-:ExportBook Cap     → sumário só com nomes de capítulos
-:ExportBook Subcap  → sumário com capítulos e subcapítulos (igual ao padrão)
+Perfil de exportação:
+1. settings (padrão)
+2. home-print
 ```
 
+Digite o número e pressione Enter. Se só existir o perfil padrão, exporta direto sem perguntar.
+
 O script sobe a árvore de diretórios a partir do arquivo aberto até encontrar uma pasta `Draft/`.
+
+### Perfis de exportação
+
+As configurações ficam em `~/DevDir/vim-writer/export-settings/`. Cada arquivo `.toml` é um perfil.
+
+```
+export-settings/
+├── settings.default.toml  ← referência, nunca editar
+├── settings.toml          ← perfil padrão (editável)
+└── home-print.toml        ← perfil alternativo (exemplo: A4 para impressão doméstica)
+```
+
+Para criar um novo perfil: copie `settings.toml` e renomeie.
+
+```bash
+cp export-settings/settings.toml export-settings/fancy.toml
+```
+
+Para restaurar o padrão após edições acidentais:
+
+```bash
+cp export-settings/settings.default.toml export-settings/settings.toml
+```
+
+### Opções do arquivo de configuração
+
+```toml
+[font]
+family      = "Whitman"          # nome da fonte
+path        = "/usr/local/share/fonts/w/"
+upright     = "Whitman_RomanOsF"
+italic      = "Whitman_ItalicOsF"
+bold        = "Whitman_BoldOsF"
+bold_italic = "Whitman_ItalicOsF"
+extension   = ".ttf"
+size_pt     = 13                 # tamanho do corpo em pt
+leading_pt  = 16.9               # entrelinha (1.3× o tamanho é referência)
+
+[page]
+width_cm         = 16            # largura do papel (A4 = 21)
+height_cm        = 23            # altura do papel  (A4 = 29.7)
+margin_top_cm    = 1.5
+margin_bottom_cm = 1.5
+margin_inner_cm  = 2.0           # margem da lombada
+margin_outer_cm  = 1.5
+
+[content]
+include_front_matter = true      # false → só os contos, sem capa/sumário
+language             = "pt-BR"
+paragraph_indent_cm  = 1.0
+toc_depth            = 0         # 0 = só capítulos, 1 = capítulos + subcapítulos
+```
 
 ### Estrutura esperada de `Draft/`
 
