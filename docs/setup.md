@@ -103,7 +103,7 @@ suficiente — os plugins são baixados sozinhos.
 
 | Plugin                        | Função                                      |
 |-------------------------------|---------------------------------------------|
-| rose-pine/neovim              | tema escuro (variante: moon)                |
+| metalelf0/black-metal-theme-neovim | tema escuro (variante: immortal)            |
 | junegunn/goyo.vim             | modo foco: margem centralizada (88 colunas) |
 | junegunn/limelight.vim        | modo foco: escurece parágrafos inativos     |
 | preservim/vim-pencil          | wrap e movimentos corretos para prosa       |

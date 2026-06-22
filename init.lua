@@ -1,3 +1,23 @@
+-- Tema e paleta de cores
+-- Para trocar de colorscheme: alterar o plugin spec abaixo, mudar `theme.name`,
+-- e atualizar os hex de `palette` para a paleta do novo tema. Todos os highlights
+-- customizados (cursor, floats, dashboard, leitura) referenciam `palette.*`.
+local theme = {
+  name = "immortal",
+  palette = {
+    bg      = "#000000",  -- fundo principal (preto puro)
+    fg      = "#c1c1c1",  -- texto principal
+    surface = "#1b161f",  -- statusline, floats (alt_bg quase preto)
+    subtle  = "#2a2333",  -- bordas, parágrafos inativos (limelight)
+    muted   = "#666666",  -- texto secundário, comentários
+    accent  = "#7799bb",  -- destaque primário (immortal: azul gelo)
+    accent2 = "#556677",  -- destaque secundário (azul-cinza)
+    cyan    = "#7799bb",  -- leitura: diálogo
+    pink    = "#556677",  -- leitura: discurso direto
+  },
+}
+local palette = theme.palette
+
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazypath) then
@@ -58,15 +78,10 @@ require("lazy").setup({
 
   -- Tema escuro
   {
-    "rose-pine/neovim",
-    name = "rose-pine",
+    "metalelf0/black-metal-theme-neovim",
     priority = 1000,
     config = function()
-      require("rose-pine").setup({
-        variant = "moon",
-        styles = { italic = true, bold = true, transparency = false },
-      })
-      vim.cmd("colorscheme rose-pine-moon")
+      vim.cmd("colorscheme " .. theme.name)
     end,
   },
 
@@ -88,9 +103,8 @@ require("lazy").setup({
     "junegunn/limelight.vim",
     cmd = "Limelight",
     init = function()
-      -- rose-pine moon: overlay = #393552, texto normal = #e0def4
       -- parágrafos inativos ficam quase da cor do fundo
-      vim.g.limelight_conceal_guifg  = "#393552"
+      vim.g.limelight_conceal_guifg  = palette.subtle
       vim.g.limelight_conceal_ctermfg = 237
       vim.g.limelight_paragraph_span  = 0   -- só o parágrafo atual
       vim.g.limelight_priority        = -1  -- não sobrescrever spell highlights
@@ -201,7 +215,7 @@ end
 local function wc_show()
   wc_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[wc_buf].bufhidden = "wipe"
-  vim.api.nvim_set_hl(0, "WcFloat", { fg = "#6e6a86", bg = "NONE" })
+  vim.api.nvim_set_hl(0, "WcFloat", { fg = palette.muted, bg = "NONE" })
   wc_win = vim.api.nvim_open_win(wc_buf, false, {
     relative  = "editor",
     width     = 1,
@@ -250,9 +264,7 @@ local function typewriter_off()
   wc_hide()
 end
 
--- Cores de fundo, tamanhos de fonte e forward declarations
-local bg_normal   = "#232136"
-local fg_text     = "#e0def4"
+-- Tamanhos de fonte e forward declarations (paleta de cores no topo do arquivo)
 local font_normal = 14    -- tamanho da fonte no modo normal
 local font_goyo   = 18    -- tamanho da fonte no modo foco (≈ h14 × 1.25)
 goyo_width        = "88"
@@ -300,7 +312,7 @@ local function ns_win_close()
 end
 
 local function ns_win_open()
-  vim.api.nvim_set_hl(0, "NsFloat", { fg = "#6e6a86", bg = "NONE" })
+  vim.api.nvim_set_hl(0, "NsFloat", { fg = palette.muted, bg = "NONE" })
   ns_state.buf = vim.api.nvim_create_buf(false, true)
   vim.bo[ns_state.buf].bufhidden = "wipe"
   ns_state.win = vim.api.nvim_open_win(ns_state.buf, false, {
@@ -386,9 +398,9 @@ local function ns_show_stats(written, ppm)
   vim.bo[sbuf].bufhidden = "wipe"
   vim.api.nvim_buf_set_lines(sbuf, 0, -1, false, lines)
   vim.bo[sbuf].modifiable = false
-  vim.api.nvim_set_hl(0, "NsStats",     { fg = "#e0def4", bg = "#2a273f" })
-  vim.api.nvim_set_hl(0, "NsStatsBold", { fg = "#e0def4", bg = "#2a273f", bold = true })
-  vim.api.nvim_set_hl(0, "NsBorder",    { fg = "#393552", bg = "#2a273f" })
+  vim.api.nvim_set_hl(0, "NsStats",     { fg = palette.fg, bg = palette.surface })
+  vim.api.nvim_set_hl(0, "NsStatsBold", { fg = palette.fg, bg = palette.surface, bold = true })
+  vim.api.nvim_set_hl(0, "NsBorder",    { fg = palette.subtle, bg = palette.surface })
   vim.api.nvim_buf_add_highlight(sbuf, -1, "NsStatsBold", 1, 0, -1)  -- linha "hoje" em negrito
   local swin = vim.api.nvim_open_win(sbuf, true, {
     relative  = "editor",
@@ -451,7 +463,7 @@ vim.api.nvim_create_autocmd("User", {
     vim.cmd("Limelight")
     typewriter_on()
     vim.opt.laststatus = 0                                 -- esconde status lines nos painéis do Goyo
-    vim.api.nvim_set_hl(0, "GoyoPad", { bg = bg_normal })
+    vim.api.nvim_set_hl(0, "GoyoPad", { bg = palette.bg })
     set_font(font_goyo)
     if ns_state.timer then vim.schedule(function() ns_win_close(); ns_win_open() end) end
   end,
@@ -460,7 +472,7 @@ vim.api.nvim_create_autocmd("User", {
   pattern = "GoyoLeave",
   callback = function()
     vim.cmd("Limelight!")
-    vim.cmd("colorscheme rose-pine-moon")
+    vim.cmd("colorscheme " .. theme.name)
     typewriter_off()
     set_font(font_normal)
     vim.opt.laststatus = 2
@@ -491,11 +503,11 @@ local reading_mode    = false
 local reading_matches = {}
 
 local reading_hls = {
-  LeituraDialogo     = { fg = "#9ccfd8" },
-  LeituraDialogCurto = { fg = "#9ccfd8", italic = true },
-  LeituraItalico     = { fg = "#c4a7e7", italic = true },
-  LeituraComentario  = { fg = "#6e6a86" },
-  LeituraDiscDireto  = { fg = "#f6c177" },
+  LeituraDialogo     = { fg = palette.cyan },
+  LeituraDialogCurto = { fg = palette.cyan, italic = true },
+  LeituraItalico     = { fg = palette.accent, italic = true },
+  LeituraComentario  = { fg = palette.muted },
+  LeituraDiscDireto  = { fg = palette.pink },
 }
 
 local reading_patterns = {
@@ -811,11 +823,11 @@ local function open_dashboard()
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = false
 
-  vim.api.nvim_set_hl(0, "DashVim",     { fg = "#c4a7e7" })
-  vim.api.nvim_set_hl(0, "DashWriter",  { fg = "#9ccfd8" })
-  vim.api.nvim_set_hl(0, "DashSection", { fg = "#6e6a86", bold = true })
-  vim.api.nvim_set_hl(0, "DashFile",    { fg = "#e0def4" })
-  vim.api.nvim_set_hl(0, "NsStatsBold", { fg = "#e0def4", bg = "#2a273f", bold = true })
+  vim.api.nvim_set_hl(0, "DashVim",     { fg = palette.accent })
+  vim.api.nvim_set_hl(0, "DashWriter",  { fg = palette.cyan })
+  vim.api.nvim_set_hl(0, "DashSection", { fg = palette.muted, bold = true })
+  vim.api.nvim_set_hl(0, "DashFile",    { fg = palette.fg })
+  vim.api.nvim_set_hl(0, "NsStatsBold", { fg = palette.fg, bg = palette.surface, bold = true })
   local ns_dash = vim.api.nvim_create_namespace("dash")
   for _, h in ipairs(hls) do
     vim.api.nvim_buf_add_highlight(buf, ns_dash, h[2], h[1], 0, -1)
@@ -913,8 +925,8 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 
 -- Cursor: forma e cor por modo (bloco em Normal, barra em Insert)
-vim.api.nvim_set_hl(0, "NormalCursor", { bg = "#908caa" })
-vim.api.nvim_set_hl(0, "InsertCursor", { bg = "#c0bfca" })
+vim.api.nvim_set_hl(0, "NormalCursor", { bg = palette.accent })
+vim.api.nvim_set_hl(0, "InsertCursor", { bg = palette.accent2 })
 vim.opt.guicursor = table.concat({
   "n-v-c:block-NormalCursor",
   "i-ci-ve:ver25-InsertCursor",
@@ -924,31 +936,31 @@ vim.opt.guicursor = table.concat({
 -- Fundo por modo Insert/Normal
 -- Em Insert: só muda o cursor
 apply_insert_colors = function()
-  vim.api.nvim_set_hl(0, "InsertCursor", { bg = "#c0bfca" })
+  vim.api.nvim_set_hl(0, "InsertCursor", { bg = palette.accent2 })
 end
 
 -- Em Normal: restaura cursor; se veio do GoyoLeave, restaura highlights completos
 apply_normal_colors = function()
-  vim.api.nvim_set_hl(0, "NormalCursor", { bg = "#908caa" })
-  vim.api.nvim_set_hl(0, "InsertCursor", { bg = "#c0bfca" })
+  vim.api.nvim_set_hl(0, "NormalCursor", { bg = palette.accent })
+  vim.api.nvim_set_hl(0, "InsertCursor", { bg = palette.accent2 })
   if writing_mode then
-    vim.api.nvim_set_hl(0, "WcFloat", { fg = "#6e6a86", bg = "NONE" })
+    vim.api.nvim_set_hl(0, "WcFloat", { fg = palette.muted, bg = "NONE" })
     return
   end
   -- Restaura highlights após reset do colorscheme (GoyoLeave)
-  vim.api.nvim_set_hl(0, "Normal",       { bg = bg_normal, fg = fg_text })
-  vim.api.nvim_set_hl(0, "NormalNC",     { bg = bg_normal })
-  vim.api.nvim_set_hl(0, "NormalFloat",  { bg = bg_normal })
-  vim.api.nvim_set_hl(0, "EndOfBuffer",  { bg = bg_normal, fg = "#393552" })
-  vim.api.nvim_set_hl(0, "StatusLine",   { bg = "#2a273f", fg = "#908caa" })
-  vim.api.nvim_set_hl(0, "StatusLineNC", { bg = "#2a273f", fg = "#6e6a86" })
-  vim.api.nvim_set_hl(0, "TabLineFill",  { bg = bg_normal })
-  vim.api.nvim_set_hl(0, "TabLine",      { bg = bg_normal, fg = "#6e6a86" })
-  vim.api.nvim_set_hl(0, "TabLineSel",   { bg = bg_normal, fg = fg_text })
-  vim.api.nvim_set_hl(0, "WinSeparator", { bg = bg_normal, fg = "#393552" })
-  vim.api.nvim_set_hl(0, "VertSplit",    { bg = bg_normal, fg = "#393552" })
-  vim.api.nvim_set_hl(0, "SignColumn",   { bg = bg_normal })
-  vim.api.nvim_set_hl(0, "GoyoPad",     { bg = bg_normal })
+  vim.api.nvim_set_hl(0, "Normal",       { bg = palette.bg, fg = palette.fg })
+  vim.api.nvim_set_hl(0, "NormalNC",     { bg = palette.bg })
+  vim.api.nvim_set_hl(0, "NormalFloat",  { bg = palette.bg })
+  vim.api.nvim_set_hl(0, "EndOfBuffer",  { bg = palette.bg, fg = palette.subtle })
+  vim.api.nvim_set_hl(0, "StatusLine",   { bg = palette.surface, fg = palette.accent })
+  vim.api.nvim_set_hl(0, "StatusLineNC", { bg = palette.surface, fg = palette.muted })
+  vim.api.nvim_set_hl(0, "TabLineFill",  { bg = palette.bg })
+  vim.api.nvim_set_hl(0, "TabLine",      { bg = palette.bg, fg = palette.muted })
+  vim.api.nvim_set_hl(0, "TabLineSel",   { bg = palette.bg, fg = palette.fg })
+  vim.api.nvim_set_hl(0, "WinSeparator", { bg = palette.bg, fg = palette.subtle })
+  vim.api.nvim_set_hl(0, "VertSplit",    { bg = palette.bg, fg = palette.subtle })
+  vim.api.nvim_set_hl(0, "SignColumn",   { bg = palette.bg })
+  vim.api.nvim_set_hl(0, "GoyoPad",      { bg = palette.bg })
   vim.cmd("redraw!")
   if reading_mode then reading_apply_hls() end
 end
